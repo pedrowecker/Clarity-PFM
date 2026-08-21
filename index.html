@@ -686,8 +686,8 @@
 
       <div class="settings-card">
         <div class="settings-header">
-          <span class="section-title">Categories</span>
-          <button class="btn btn-primary" onclick="openAddCat()">+ New category</button>
+          <span class="section-title">Spending Categories</span>
+          <button class="btn btn-primary" onclick="openAddCat(false)">+ New category</button>
         </div>
         <table class="cat-table">
           <thead>
@@ -696,11 +696,29 @@
               <th>Category</th>
               <th style="text-align:right">Monthly budget (€)</th>
               <th style="text-align:center">Colour</th>
-              <th style="text-align:center">Savings type</th>
               <th style="text-align:center">Action</th>
             </tr>
           </thead>
           <tbody id="settingsTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="settings-card" style="margin-top:16px">
+        <div class="settings-header">
+          <span class="section-title">Savings Categories</span>
+          <button class="btn btn-primary" onclick="openAddCat(true)">+ New category</button>
+        </div>
+        <table class="cat-table">
+          <thead>
+            <tr>
+              <th style="width:32px"></th>
+              <th>Category</th>
+              <th style="text-align:right">Monthly goal (€)</th>
+              <th style="text-align:center">Colour</th>
+              <th style="text-align:center">Action</th>
+            </tr>
+          </thead>
+          <tbody id="savingsTableBody"></tbody>
         </table>
       </div>
 
@@ -762,18 +780,17 @@
       <input class="form-input" type="text" id="catName" placeholder="e.g. Gym, Pets, Travel...">
     </div>
     <div class="form-row">
-      <label class="form-label">Monthly budget (€)</label>
+      <label class="form-label" id="catBudgetLabel">Monthly budget (€)</label>
       <input class="form-input" type="number" id="catBudget" placeholder="0.00" step="0.01" min="0">
     </div>
     <div class="form-row">
       <label class="form-label">Colour</label>
       <div class="color-picker" id="colorPicker"></div>
     </div>
-    <div class="form-row">
+    <div class="form-row" id="catSavingsRow" style="display:none">
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
         <input type="checkbox" id="catIsSavings" style="accent-color:var(--accent);width:15px;height:15px;cursor:pointer">
         <span style="font-size:13px;font-weight:500;color:var(--text)">Savings type</span>
-        <span style="font-size:12px;color:var(--text-3)">— inverts the progress logic</span>
       </label>
     </div>
     <div class="modal-actions">
@@ -1745,22 +1762,25 @@ const PALETTE = [
 let editingCatId  = null;
 let selectedColor = PALETTE[0];
 
-function renderSettings() {
-  const tbody = document.getElementById('settingsTableBody');
+function renderCatRows(cats, tbodyId) {
+  const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  categories.forEach((cat, i) => {
+  if (cats.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="5" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No categories yet. Click "+ New category" to add one.</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+
+  cats.forEach((cat, i) => {
     const bg = i % 2 === 0 ? '#FFFFFF' : '#FAFAF8';
     const tr = document.createElement('tr');
     tr.style.background = bg;
     tr.setAttribute('draggable', 'true');
     tr.setAttribute('data-cat-id', cat.id);
-
-    // Toggle pill styles
-    const isOn = !!cat.isSavings;
-    const pillBg    = isOn ? 'var(--accent)' : 'var(--border-strong)';
-    const pillKnob  = isOn ? 'translateX(16px)' : 'translateX(2px)';
+    tr.setAttribute('data-tbody', tbodyId);
 
     tr.innerHTML = `
       <td style="padding:12px 8px 12px 16px; border-bottom:1px solid var(--border); cursor:grab; color:var(--text-3); font-size:16px; user-select:none" title="Drag to reorder">⠿</td>
@@ -1774,20 +1794,10 @@ function renderSettings() {
         <input class="settings-input" type="number" min="0" step="10"
           value="${cat.budgeted}"
           onchange="updateBudget(${cat.id}, this.value)"
-          title="Monthly budget">
+          title="${cat.isSavings ? 'Monthly goal' : 'Monthly budget'}">
       </td>
       <td style="padding:12px 16px; border-bottom:1px solid var(--border); text-align:center">
         <span class="cat-color-dot" style="background:${cat.color}; width:18px; height:18px; border-radius:50%; display:inline-block; border:2px solid rgba(0,0,0,0.1)"></span>
-      </td>
-      <td style="padding:12px 16px; border-bottom:1px solid var(--border); text-align:center">
-        <div style="display:inline-flex;align-items:center;justify-content:center">
-          <div id="toggle-${cat.id}"
-            onclick="return false"
-            style="width:34px;height:18px;border-radius:99px;background:${pillBg};position:relative;transition:background 0.2s;cursor:not-allowed;opacity:0.5"
-            title="Clica no lápis para editar">
-            <div style="position:absolute;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:transform 0.2s;transform:${pillKnob}"></div>
-          </div>
-        </div>
       </td>
       <td style="padding:12px 16px; border-bottom:1px solid var(--border)">
         <div class="action-cell">
@@ -1799,14 +1809,21 @@ function renderSettings() {
     tbody.appendChild(tr);
   });
 
-  initDragDrop();
+  initDragDrop(tbodyId);
+}
+
+function renderSettings() {
+  const spendCats  = categories.filter(c => !c.isSavings);
+  const savingsCats = categories.filter(c => c.isSavings);
+  renderCatRows(spendCats,  'settingsTableBody');
+  renderCatRows(savingsCats, 'savingsTableBody');
 }
 
 // ─── Drag & Drop ──────────────────────────────────────────────
 let dragSrc = null;
 
-function initDragDrop() {
-  const tbody = document.getElementById('settingsTableBody');
+function initDragDrop(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
 
   tbody.querySelectorAll('tr').forEach(row => {
@@ -1828,9 +1845,10 @@ function initDragDrop() {
     row.addEventListener('drop', async (e) => {
       e.preventDefault();
       if (dragSrc === row) return;
+      // Only allow drop within same table
+      if (dragSrc.getAttribute('data-tbody') !== tbodyId) return;
       row.classList.remove('drag-over');
 
-      // Reorder categories array
       const srcId  = parseInt(dragSrc.getAttribute('data-cat-id'));
       const destId = parseInt(row.getAttribute('data-cat-id'));
       const srcIdx  = categories.findIndex(c => c.id === srcId);
@@ -1838,7 +1856,6 @@ function initDragDrop() {
       const [moved] = categories.splice(srcIdx, 1);
       categories.splice(destIdx, 0, moved);
 
-      // Persist order via meta
       await dbSetMeta('categoryOrder', categories.map(c => c.id));
       renderSettings();
       render();
@@ -1897,12 +1914,15 @@ function selectColor(color, el) {
   el.classList.add('selected');
 }
 
-function openAddCat() {
+function openAddCat(isSavings = false) {
   editingCatId = null;
-  document.getElementById('catModalTitle').textContent = 'New category';
+  document.getElementById('catModalTitle').textContent = isSavings ? 'New savings category' : 'New spending category';
   document.getElementById('catName').value   = '';
   document.getElementById('catBudget').value = '';
-  document.getElementById('catIsSavings').checked = false;
+  document.getElementById('catBudgetLabel').textContent = isSavings ? 'Monthly goal (€)' : 'Monthly budget (€)';
+  document.getElementById('catIsSavings').checked = isSavings;
+  // Hide the savings checkbox row — determined by which button was clicked
+  document.getElementById('catSavingsRow').style.display = 'none';
   buildColorPicker(PALETTE[nextCatId % PALETTE.length]);
   document.getElementById('catModalOverlay').classList.add('open');
 }
@@ -1911,10 +1931,12 @@ function openEditCat(id) {
   const cat = categories.find(c => c.id === id);
   if (!cat) return;
   editingCatId = id;
-  document.getElementById('catModalTitle').textContent = 'Edit category';
+  document.getElementById('catModalTitle').textContent = cat.isSavings ? 'Edit savings category' : 'Edit spending category';
   document.getElementById('catName').value   = cat.name;
   document.getElementById('catBudget').value = cat.budgeted;
+  document.getElementById('catBudgetLabel').textContent = cat.isSavings ? 'Monthly goal (€)' : 'Monthly budget (€)';
   document.getElementById('catIsSavings').checked = !!cat.isSavings;
+  document.getElementById('catSavingsRow').style.display = 'none';
   buildColorPicker(cat.color);
   document.getElementById('catModalOverlay').classList.add('open');
 }
