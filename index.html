@@ -478,8 +478,13 @@
     </div>
     <div class="topbar-right">
       <div id="todayBadge" style="font-size:12px;color:var(--text-3);padding:0 4px;white-space:nowrap"></div>
-      <div id="lastSavedBadge" style="font-size:12px;color:var(--text-3);padding:0 4px;white-space:nowrap;display:none"></div>
-      <div id="dbStatusDot" title="Auto-save ativo" style="width:7px;height:7px;border-radius:50%;background:#D1D5DB;flex-shrink:0;transition:background 0.3s"></div>
+      <div id="autosaveIndicator" style="display:flex;align-items:center;gap:6px;padding:0 6px">
+        <div id="dbStatusDot" style="width:7px;height:7px;border-radius:50%;background:#D1D5DB;flex-shrink:0;transition:background 0.3s"></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.2">
+          <span style="font-size:11px;font-weight:600;color:var(--text-2);letter-spacing:0.01em" id="autosaveLabel">Autosave on</span>
+          <span style="font-size:10px;color:var(--text-3)" id="lastSavedBadge"></span>
+        </div>
+      </div>
       <button id="installBtn" onclick="installApp()" title="Instalar app"
         style="display:none;align-items:center;gap:5px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);padding:5px 11px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:opacity 0.12s">
         ⬇ Instalar
@@ -829,9 +834,7 @@
   </div>
 </div>
 
-<footer class="app-footer" style="display:flex;align-items:center;gap:10px">
-  <button class="btn-save" onclick="exportBackupJSON()" title="Download backup JSON">&#8681; Backup</button>
-</footer>
+
 
 <!-- Modal: All time -->
 <div class="modal-overlay" id="allTimeOverlay">
@@ -1012,12 +1015,15 @@ let flashTimer = null;
 function flashSaved() {
   const dot   = document.getElementById('dbStatusDot');
   const badge = document.getElementById('lastSavedBadge');
+  const label = document.getElementById('autosaveLabel');
   if (!dot) return;
   dot.style.background = '#16A34A';
+  if (label) label.textContent = 'Autosave on';
   if (badge) {
     const now = new Date();
-    badge.textContent = 'Guardado ' + now.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
-    badge.style.display = '';
+    const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    badge.textContent = 'Updated ' + dateStr + ', ' + timeStr;
   }
   clearTimeout(flashTimer);
   flashTimer = setTimeout(() => { dot.style.background = '#16A34A'; }, 2000);
@@ -1062,6 +1068,8 @@ async function initApp() {
     // Indicador verde: DB ligada
     const dot = document.getElementById('dbStatusDot');
     if (dot) dot.style.background = '#16A34A';
+    const label = document.getElementById('autosaveLabel');
+    if (label) label.textContent = 'Autosave on';
 
     updateDbInfo();
     render();
