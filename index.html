@@ -689,14 +689,21 @@
         <button class="btn btn-primary" onclick="openAddCat(false)">+ New category</button>
       </div>
       <div class="settings-card">
-        <table class="cat-table" style="table-layout:fixed;width:100%">
+        <table class="cat-table" style="width:100%">
+          <colgroup>
+            <col style="width:36px">
+            <col>
+            <col style="width:160px">
+            <col style="width:70px">
+            <col style="width:80px">
+          </colgroup>
           <thead>
             <tr>
-              <th style="width:36px"></th>
-              <th style="width:auto">Category</th>
-              <th style="width:180px;text-align:right">Monthly budget (€)</th>
-              <th style="width:80px;text-align:center">Colour</th>
-              <th style="width:80px;text-align:center">Action</th>
+              <th></th>
+              <th style="text-align:left">Category</th>
+              <th style="text-align:right">Monthly budget (€)</th>
+              <th style="text-align:center">Colour</th>
+              <th style="text-align:center">Action</th>
             </tr>
           </thead>
           <tbody id="settingsTableBody"></tbody>
@@ -708,14 +715,21 @@
         <button class="btn btn-primary" onclick="openAddCat(true)">+ New category</button>
       </div>
       <div class="settings-card">
-        <table class="cat-table" style="table-layout:fixed;width:100%">
+        <table class="cat-table" style="width:100%">
+          <colgroup>
+            <col style="width:36px">
+            <col>
+            <col style="width:160px">
+            <col style="width:70px">
+            <col style="width:80px">
+          </colgroup>
           <thead>
             <tr>
-              <th style="width:36px"></th>
-              <th style="width:auto">Category</th>
-              <th style="width:180px;text-align:right">Monthly goal (€)</th>
-              <th style="width:80px;text-align:center">Colour</th>
-              <th style="width:80px;text-align:center">Action</th>
+              <th></th>
+              <th style="text-align:left">Category</th>
+              <th style="text-align:right">Monthly goal (€)</th>
+              <th style="text-align:center">Colour</th>
+              <th style="text-align:center">Action</th>
             </tr>
           </thead>
           <tbody id="savingsTableBody"></tbody>
