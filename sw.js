@@ -3,7 +3,7 @@
 //  Cache-first para assets locais, network-first para CDN externos.
 // ═══════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'clarity-v1';
+const CACHE_NAME = 'clarity-v2';
 
 // Ficheiros locais — sempre em cache
 const LOCAL_ASSETS = [

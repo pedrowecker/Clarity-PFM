@@ -692,6 +692,7 @@
         <table class="cat-table">
           <thead>
             <tr>
+              <th style="width:32px"></th>
               <th>Category</th>
               <th style="text-align:right">Monthly budget (€)</th>
               <th style="text-align:center">Colour</th>
@@ -703,38 +704,48 @@
         </table>
       </div>
 
-      <div class="settings-card" style="margin-top:16px">
-        <div class="settings-header">
-          <div>
-            <span class="section-title">Export data</span>
-            <div style="font-size:12px;color:var(--text-3);margin-top:2px">Transactions + category summary · all months</div>
+      <!-- Advanced Settings (collapsed) -->
+      <div style="margin-top:20px">
+        <button onclick="toggleAdvanced()" id="advancedToggleBtn"
+          style="display:flex;align-items:center;gap:7px;background:none;border:none;cursor:pointer;font-family:var(--font);font-size:13px;color:var(--text-3);padding:0;font-weight:500;letter-spacing:0.01em">
+          <span id="advancedChevron" style="font-size:11px;transition:transform 0.2s">▶</span>
+          Advanced settings
+        </button>
+        <div id="advancedPanel" style="display:none;margin-top:12px">
+          <div class="settings-card">
+            <div class="settings-header">
+              <div>
+                <span class="section-title">Export data</span>
+                <div style="font-size:12px;color:var(--text-3);margin-top:2px">Transactions + category summary · all months</div>
+              </div>
+              <button class="btn btn-outline" onclick="exportToExcel()" style="display:flex;align-items:center;gap:6px">
+                <span>↓</span> Export to Excel
+              </button>
+            </div>
+            <div style="padding:14px 16px;font-size:13px;color:var(--text-2);border-top:1px solid var(--border)">
+              Exports two sheets: <strong>Transactions</strong> (date, description, category, type, amount) and <strong>Summary</strong> (monthly totals per category).
+            </div>
           </div>
-          <button class="btn btn-outline" onclick="exportToExcel()" style="display:flex;align-items:center;gap:6px">
-            <span>↓</span> Export to Excel
-          </button>
-        </div>
-        <div style="padding:14px 16px;font-size:13px;color:var(--text-2);border-top:1px solid var(--border)">
-          Exports two sheets: <strong>Transactions</strong> (date, description, category, type, amount) and <strong>Summary</strong> (monthly totals per category).
-        </div>
-      </div>
 
-      <div class="settings-card" style="margin-top:16px">
-        <div class="settings-header">
-          <div>
-            <span class="section-title">Backup &amp; Restore</span>
-            <div style="font-size:12px;color:var(--text-3);margin-top:2px">Os dados ficam no browser (IndexedDB). Faz backup regularmente.</div>
+          <div class="settings-card" style="margin-top:16px">
+            <div class="settings-header">
+              <div>
+                <span class="section-title">Backup &amp; Restore</span>
+                <div style="font-size:12px;color:var(--text-3);margin-top:2px">Os dados ficam no browser (IndexedDB). Faz backup regularmente.</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-outline" onclick="exportBackupJSON()" style="display:flex;align-items:center;gap:6px"><span>↓</span> Backup JSON</button>
+                <label class="btn btn-outline" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                  <span>↑</span> Restaurar
+                  <input type="file" accept=".json" onchange="importBackupJSON(this)" style="display:none">
+                </label>
+              </div>
+            </div>
+            <div style="padding:14px 16px;font-size:13px;color:var(--text-2);border-top:1px solid var(--border)">
+              O backup JSON contém todas as transações e categorias. Para restaurar noutro dispositivo, importa o ficheiro JSON.
+              <span id="dbInfo" style="display:block;margin-top:6px;font-size:12px;color:var(--text-3)"></span>
+            </div>
           </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-outline" onclick="exportBackupJSON()" style="display:flex;align-items:center;gap:6px"><span>↓</span> Backup JSON</button>
-            <label class="btn btn-outline" style="display:flex;align-items:center;gap:6px;cursor:pointer">
-              <span>↑</span> Restaurar
-              <input type="file" accept=".json" onchange="importBackupJSON(this)" style="display:none">
-            </label>
-          </div>
-        </div>
-        <div style="padding:14px 16px;font-size:13px;color:var(--text-2);border-top:1px solid var(--border)">
-          O backup JSON contém todas as transações e categorias. Para restaurar noutro dispositivo, importa o ficheiro JSON.
-          <span id="dbInfo" style="display:block;margin-top:6px;font-size:12px;color:var(--text-3)"></span>
         </div>
       </div>
     </div>
@@ -1038,7 +1049,14 @@ async function initApp() {
     // Carrega categorias
     const storedCats = await dbGetAll('categories');
     if (storedCats.length > 0) {
-      categories = storedCats;
+      const order = await dbGetMeta('categoryOrder');
+      if (order && Array.isArray(order)) {
+        categories = order.map(id => storedCats.find(c => c.id === id)).filter(Boolean);
+        // append any cats not in order (new ones)
+        storedCats.forEach(c => { if (!categories.find(x => x.id === c.id)) categories.push(c); });
+      } else {
+        categories = storedCats;
+      }
     } else {
       // Primeira vez: usa as categorias padrão e guarda-as
       categories = DEFAULT_CATEGORIES.map(c => ({ ...c }));
@@ -1731,11 +1749,21 @@ function renderSettings() {
   const tbody = document.getElementById('settingsTableBody');
   if (!tbody) return;
   tbody.innerHTML = '';
+
   categories.forEach((cat, i) => {
     const bg = i % 2 === 0 ? '#FFFFFF' : '#FAFAF8';
     const tr = document.createElement('tr');
     tr.style.background = bg;
+    tr.setAttribute('draggable', 'true');
+    tr.setAttribute('data-cat-id', cat.id);
+
+    // Toggle pill styles
+    const isOn = !!cat.isSavings;
+    const pillBg    = isOn ? 'var(--accent)' : 'var(--border-strong)';
+    const pillKnob  = isOn ? 'translateX(16px)' : 'translateX(2px)';
+
     tr.innerHTML = `
+      <td style="padding:12px 8px 12px 16px; border-bottom:1px solid var(--border); cursor:grab; color:var(--text-3); font-size:16px; user-select:none" title="Drag to reorder">⠿</td>
       <td style="padding:12px 16px; border-bottom:1px solid var(--border)">
         <div style="display:flex;align-items:center;gap:9px;font-weight:500">
           <span class="cat-color-dot" style="background:${cat.color}"></span>
@@ -1752,9 +1780,14 @@ function renderSettings() {
         <span class="cat-color-dot" style="background:${cat.color}; width:18px; height:18px; border-radius:50%; display:inline-block; border:2px solid rgba(0,0,0,0.1)"></span>
       </td>
       <td style="padding:12px 16px; border-bottom:1px solid var(--border); text-align:center">
-        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-2)">
-          <input type="checkbox" ${cat.isSavings ? 'checked' : ''} onchange="toggleSavings(${cat.id}, this.checked)" style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer">
-        </label>
+        <div style="display:inline-flex;align-items:center;justify-content:center">
+          <div id="toggle-${cat.id}"
+            onclick="return false"
+            style="width:34px;height:18px;border-radius:99px;background:${pillBg};position:relative;transition:background 0.2s;cursor:not-allowed;opacity:0.5"
+            title="Clica no lápis para editar">
+            <div style="position:absolute;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:transform 0.2s;transform:${pillKnob}"></div>
+          </div>
+        </div>
       </td>
       <td style="padding:12px 16px; border-bottom:1px solid var(--border)">
         <div class="action-cell">
@@ -1765,6 +1798,61 @@ function renderSettings() {
     `;
     tbody.appendChild(tr);
   });
+
+  initDragDrop();
+}
+
+// ─── Drag & Drop ──────────────────────────────────────────────
+let dragSrc = null;
+
+function initDragDrop() {
+  const tbody = document.getElementById('settingsTableBody');
+  if (!tbody) return;
+
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('dragstart', (e) => {
+      dragSrc = row;
+      setTimeout(() => row.style.opacity = '0.4', 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', () => {
+      row.style.opacity = '';
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+      if (row !== dragSrc) row.classList.add('drag-over');
+    });
+    row.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      if (dragSrc === row) return;
+      row.classList.remove('drag-over');
+
+      // Reorder categories array
+      const srcId  = parseInt(dragSrc.getAttribute('data-cat-id'));
+      const destId = parseInt(row.getAttribute('data-cat-id'));
+      const srcIdx  = categories.findIndex(c => c.id === srcId);
+      const destIdx = categories.findIndex(c => c.id === destId);
+      const [moved] = categories.splice(srcIdx, 1);
+      categories.splice(destIdx, 0, moved);
+
+      // Persist order via meta
+      await dbSetMeta('categoryOrder', categories.map(c => c.id));
+      renderSettings();
+      render();
+    });
+  });
+}
+
+// ─── Advanced settings toggle ──────────────────────────────────
+function toggleAdvanced() {
+  const panel   = document.getElementById('advancedPanel');
+  const chevron = document.getElementById('advancedChevron');
+  const isOpen  = panel.style.display !== 'none';
+  panel.style.display  = isOpen ? 'none' : 'block';
+  chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
 }
 
 async function updateBudget(id, val) {
@@ -2080,10 +2168,20 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
       .then(reg => {
         console.log('[Clarity] Service Worker registado:', reg.scope);
+        // Verifica atualizações sempre que a app fica em foco
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') reg.update();
+        });
+        window.addEventListener('focus', () => reg.update());
       })
       .catch(err => {
         console.warn('[Clarity] Service Worker falhou:', err);
       });
+  });
+
+  // Quando há uma nova versão disponível, recarrega automaticamente
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
   });
 }
 
