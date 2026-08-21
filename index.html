@@ -684,38 +684,38 @@
         <div class="page-sub">Define how much to allocate to each category.</div>
       </div>
 
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span class="section-title">Spending Categories</span>
+        <button class="btn btn-primary" onclick="openAddCat(false)">+ New category</button>
+      </div>
       <div class="settings-card">
-        <div class="settings-header">
-          <span class="section-title">Spending Categories</span>
-          <button class="btn btn-primary" onclick="openAddCat(false)">+ New category</button>
-        </div>
-        <table class="cat-table">
+        <table class="cat-table" style="table-layout:fixed;width:100%">
           <thead>
             <tr>
-              <th style="width:32px"></th>
-              <th>Category</th>
-              <th style="text-align:right">Monthly budget (€)</th>
-              <th style="text-align:center">Colour</th>
-              <th style="text-align:center">Action</th>
+              <th style="width:36px"></th>
+              <th style="width:auto">Category</th>
+              <th style="width:180px;text-align:right">Monthly budget (€)</th>
+              <th style="width:80px;text-align:center">Colour</th>
+              <th style="width:80px;text-align:center">Action</th>
             </tr>
           </thead>
           <tbody id="settingsTableBody"></tbody>
         </table>
       </div>
 
-      <div class="settings-card" style="margin-top:16px">
-        <div class="settings-header">
-          <span class="section-title">Savings Categories</span>
-          <button class="btn btn-primary" onclick="openAddCat(true)">+ New category</button>
-        </div>
-        <table class="cat-table">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:28px;margin-bottom:12px">
+        <span class="section-title">Savings Categories</span>
+        <button class="btn btn-primary" onclick="openAddCat(true)">+ New category</button>
+      </div>
+      <div class="settings-card">
+        <table class="cat-table" style="table-layout:fixed;width:100%">
           <thead>
             <tr>
-              <th style="width:32px"></th>
-              <th>Category</th>
-              <th style="text-align:right">Monthly goal (€)</th>
-              <th style="text-align:center">Colour</th>
-              <th style="text-align:center">Action</th>
+              <th style="width:36px"></th>
+              <th style="width:auto">Category</th>
+              <th style="width:180px;text-align:right">Monthly goal (€)</th>
+              <th style="width:80px;text-align:center">Colour</th>
+              <th style="width:80px;text-align:center">Action</th>
             </tr>
           </thead>
           <tbody id="savingsTableBody"></tbody>
@@ -1784,22 +1784,22 @@ function renderCatRows(cats, tbodyId) {
 
     tr.innerHTML = `
       <td style="padding:12px 8px 12px 16px; border-bottom:1px solid var(--border); cursor:grab; color:var(--text-3); font-size:16px; user-select:none" title="Drag to reorder">⠿</td>
-      <td style="padding:12px 16px; border-bottom:1px solid var(--border)">
+      <td style="padding:12px 16px; border-bottom:1px solid var(--border); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
         <div style="display:flex;align-items:center;gap:9px;font-weight:500">
-          <span class="cat-color-dot" style="background:${cat.color}"></span>
+          <span class="cat-color-dot" style="background:${cat.color};flex-shrink:0"></span>
           ${cat.name}
         </div>
       </td>
-      <td style="padding:12px 16px; border-bottom:1px solid var(--border); text-align:right">
+      <td style="padding:12px 16px; border-bottom:1px solid var(--border); text-align:right; width:180px">
         <input class="settings-input" type="number" min="0" step="10"
           value="${cat.budgeted}"
           onchange="updateBudget(${cat.id}, this.value)"
           title="${cat.isSavings ? 'Monthly goal' : 'Monthly budget'}">
       </td>
-      <td style="padding:12px 16px; border-bottom:1px solid var(--border); text-align:center">
+      <td style="padding:12px 16px; border-bottom:1px solid var(--border); text-align:center; width:80px">
         <span class="cat-color-dot" style="background:${cat.color}; width:18px; height:18px; border-radius:50%; display:inline-block; border:2px solid rgba(0,0,0,0.1)"></span>
       </td>
-      <td style="padding:12px 16px; border-bottom:1px solid var(--border)">
+      <td style="padding:12px 16px; border-bottom:1px solid var(--border); width:80px">
         <div class="action-cell">
           <button class="icon-btn edit" onclick="openEditCat(${cat.id})" title="Edit">✎</button>
           <button class="icon-btn" onclick="deleteCat(${cat.id})" title="Delete">✕</button>
