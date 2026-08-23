@@ -795,18 +795,18 @@
             <div class="settings-header">
               <div>
                 <span class="section-title">Backup &amp; Restore</span>
-                <div style="font-size:12px;color:var(--text-3);margin-top:2px">Os dados ficam no browser (IndexedDB). Faz backup regularmente.</div>
+                <div style="font-size:12px;color:var(--text-3);margin-top:2px">Data is stored locally in your browser. Back up regularly.</div>
               </div>
               <div style="display:flex;gap:8px">
-                <button class="btn btn-outline" onclick="exportBackupJSON()" style="display:flex;align-items:center;gap:6px"><span>↓</span> Backup JSON</button>
+                <button class="btn btn-outline" onclick="exportBackupJSON()" style="display:flex;align-items:center;gap:6px"><span>↓</span> Backup</button>
                 <label class="btn btn-outline" style="display:flex;align-items:center;gap:6px;cursor:pointer">
-                  <span>↑</span> Restaurar
+                  <span>↑</span> Restore
                   <input type="file" accept=".json" onchange="importBackupJSON(this)" style="display:none">
                 </label>
               </div>
             </div>
             <div style="padding:14px 16px;font-size:13px;color:var(--text-2);border-top:1px solid var(--border)">
-              O backup JSON contém todas as transações e categorias. Para restaurar noutro dispositivo, importa o ficheiro JSON.
+              The JSON backup contains all your transactions and categories. To restore on another device, import the JSON file.
               <span id="dbInfo" style="display:block;margin-top:6px;font-size:12px;color:var(--text-3)"></span>
             </div>
           </div>
@@ -923,24 +923,39 @@
 
 <!-- Modal: All time -->
 <div class="modal-overlay" id="incomeCatModalOverlay">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-header">
-      <span class="modal-title" id="incomeCatModalTitle">New income category</span>
-      <button class="modal-close" onclick="closeIncomeCatModal()">✕</button>
+  <div class="modal">
+    <div class="modal-title" id="incomeCatModalTitle">New income category</div>
+    <div class="form-row">
+      <label class="form-label">Name</label>
+      <input class="form-input" type="text" id="incomeCatName" placeholder="e.g. Salary">
     </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <label class="form-label">Category name</label>
-        <input class="form-input" type="text" id="incomeCatName" placeholder="e.g. Salary">
-      </div>
-      <div class="form-row">
-        <label class="form-label">Colour</label>
-        <div class="color-picker" id="incomeCatColorPicker"></div>
-      </div>
+    <div class="form-row">
+      <label class="form-label">Colour</label>
+      <div class="color-picker" id="incomeCatColorPicker"></div>
     </div>
-    <div class="modal-footer">
+    <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeIncomeCatModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveIncomeCat()">Save category</button>
+      <button class="btn btn-primary" onclick="saveIncomeCat()" id="incomeCatSaveBtn">Save category</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="restoreModalOverlay">
+  <div class="modal">
+    <div class="modal-title">Restore backup</div>
+    <div class="form-row" style="padding-top:0">
+      <p style="font-size:14px;color:var(--text-2);margin:0;line-height:1.7">
+        Backup from <strong id="restoreModalDate"></strong>
+      </p>
+      <p style="font-size:13px;color:var(--text-3);margin:10px 0 0;line-height:1.7">
+        This will replace all your current data:<br>
+        · <span id="restoreModalTxns"></span> transaction(s)<br>
+        · <span id="restoreModalCats"></span> category(ies)
+      </p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeRestoreModal()">Cancel</button>
+      <button class="btn" style="background:#DC2626;color:#fff;border:none" onclick="confirmRestore()">Restore</button>
     </div>
   </div>
 </div>
@@ -1247,7 +1262,7 @@ async function initApp() {
 function updateDbInfo() {
   const el = document.getElementById('dbInfo');
   if (!el) return;
-  el.textContent = `${transactions.length} transação(ões) · ${categories.length} categoria(s) guardada(s) localmente no browser.`;
+  el.textContent = `${transactions.length} transaction(s) · ${categories.length} category(ies) stored locally in your browser.`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1288,39 +1303,68 @@ async function importBackupJSON(input) {
       return;
     }
 
-    const confirmed = confirm(
-      `Importar backup de ${backup.exportedAt ? new Date(backup.exportedAt).toLocaleString('pt-PT') : 'data desconhecida'}?\n\n` +
-      `Isto irá SUBSTITUIR todos os dados atuais:\n` +
-      `· ${backup.transactions.length} transação(ões)\n` +
-      `· ${backup.categories.length} categoria(s)\n\n` +
-      `Os dados atuais serão apagados. Continuar?`
-    );
-    if (!confirmed) { input.value = ''; return; }
-
-    // Limpa DB e recarrega com dados do backup
-    await dbClear('transactions');
-    await dbClear('categories');
-
-    categories   = backup.categories;
-    transactions = backup.transactions;
-    nextId       = backup.nextId    || (transactions.length > 0 ? Math.max(...transactions.map(t => t.id)) + 1 : 1);
-    nextCatId    = backup.nextCatId || (categories.length > 0   ? Math.max(...categories.map(c => c.id)) + 1 : 9);
-
-    for (const c of categories)   await dbPut('categories', c);
-    for (const t of transactions)  await dbPut('transactions', t);
-    await saveMeta();
-
+    // Show app-style restore modal
+    await showRestoreModal(backup);
     input.value = '';
-    updateDbInfo();
-    render();
-    flashSaved();
-    alert(`Backup restaurado com sucesso!\n${transactions.length} transação(ões) e ${categories.length} categoria(s) importadas.`);
+    return; // flow continues in confirmRestore()
+
+    // Store pending backup and show modal
+    pendingRestoreBackup = backup;
 
   } catch (err) {
     alert('Erro ao importar o ficheiro: ' + err.message);
-    input.value = '';
   }
 }
+
+let pendingRestoreBackup = null;
+
+function showRestoreModal(backup) {
+  const dateStr = backup.exportedAt
+    ? new Date(backup.exportedAt).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : 'data desconhecida';
+  document.getElementById('restoreModalDate').textContent = dateStr;
+  document.getElementById('restoreModalTxns').textContent = backup.transactions.length;
+  document.getElementById('restoreModalCats').textContent = backup.categories.length;
+  pendingRestoreBackup = backup;
+  document.getElementById('restoreModalOverlay').classList.add('open');
+}
+
+function closeRestoreModal() {
+  document.getElementById('restoreModalOverlay').classList.remove('open');
+  pendingRestoreBackup = null;
+}
+
+async function confirmRestore() {
+  if (!pendingRestoreBackup) return;
+  const backup = pendingRestoreBackup;
+  closeRestoreModal();
+
+  await dbClear('transactions');
+  await dbClear('categories');
+  if (backup.incomeCategories) await dbClear('incomeCategories');
+
+  categories       = backup.categories || [];
+  transactions     = backup.transactions || [];
+  incomeCategories = backup.incomeCategories || [];
+  nextId       = backup.nextId    || (transactions.length > 0 ? Math.max(...transactions.map(t => t.id)) + 1 : 1);
+  nextCatId    = backup.nextCatId || (categories.length > 0   ? Math.max(...categories.map(c => c.id)) + 1 : 9);
+  nextIncomeCatId = backup.nextIncomeCatId || (incomeCategories.length > 0 ? Math.max(...incomeCategories.map(c => c.id)) + 1 : 108);
+
+  for (const c of categories)       await dbPut('categories', c);
+  for (const t of transactions)      await dbPut('transactions', t);
+  for (const c of incomeCategories)  await dbPut('incomeCategories', c);
+  await saveMeta();
+  await dbSetMeta('nextIncomeCatId', nextIncomeCatId);
+
+  updateDbInfo();
+  render();
+  renderSettings();
+  flashSaved();
+}
+
+document.getElementById('restoreModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeRestoreModal();
+});
 
 // ═══════════════════════════════════════════════════════════════════
 //  Lógica da app (igual ao original, adaptada para async DB)
@@ -2028,7 +2072,7 @@ function renderIncomeCatRows() {
 
   if (incomeCategories.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="4" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No income categories yet.</td>`;
+    tr.innerHTML = `<td colspan="4" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No categories yet. Click &quot;+ New category&quot; to add one.</td>`;
     tbody.appendChild(tr);
     return;
   }
@@ -2526,6 +2570,7 @@ let editingIncomeCatId = null;
 function openAddIncomeCat() {
   editingIncomeCatId = null;
   document.getElementById('incomeCatModalTitle').textContent = 'New income category';
+  document.getElementById('incomeCatSaveBtn').textContent = 'Save category';
   document.getElementById('incomeCatName').value = '';
   buildIncomeCatColorPicker(PALETTE[nextIncomeCatId % PALETTE.length]);
   document.getElementById('incomeCatModalOverlay').classList.add('open');
@@ -2536,6 +2581,7 @@ function openEditIncomeCat(id) {
   if (!cat) return;
   editingIncomeCatId = id;
   document.getElementById('incomeCatModalTitle').textContent = 'Edit income category';
+  document.getElementById('incomeCatSaveBtn').textContent = 'Save category';
   document.getElementById('incomeCatName').value = cat.name;
   buildIncomeCatColorPicker(cat.color);
   document.getElementById('incomeCatModalOverlay').classList.add('open');
