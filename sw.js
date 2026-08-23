@@ -3,7 +3,7 @@
 //  Network-first para HTML. Cache-first para CDN assets.
 // ═══════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'clarity-v19';
+const CACHE_NAME = 'clarity-v20';
 const CDN_ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js',
