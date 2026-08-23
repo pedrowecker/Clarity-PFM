@@ -901,6 +901,11 @@
       <div id="txnIncomeCatPills" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;"></div>
       <input type="hidden" id="txnIncomeCat">
     </div>
+    <div class="form-row" id="savingCatRow" style="display:none">
+      <label class="form-label">Savings category</label>
+      <div id="txnSavingCatPills" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;"></div>
+      <input type="hidden" id="txnSavingCat">
+    </div>
 
     <div class="modal-actions" style="margin-top:24px;">
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
@@ -1331,7 +1336,7 @@ function monthlyTxns() {
 
 function spentByCategory() {
   const map = {};
-  monthlyTxns().filter(t => t.type === 'expense' && t.catId).forEach(t => {
+  monthlyTxns().filter(t => (t.type === 'expense' || t.type === 'saving') && t.catId).forEach(t => {
     map[t.catId] = (map[t.catId] || 0) + t.amount;
   });
   return map;
@@ -1376,7 +1381,7 @@ function renderBudget() {
   const savingsCatIds = new Set(categories.filter(c => c.isSavings).map(c => c.id));
   const income = txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const spent  = txns.filter(t => t.type === 'expense' && !savingsCatIds.has(t.catId)).reduce((s, t) => s + t.amount, 0);
-  const saved  = txns.filter(t => t.type === 'expense' && savingsCatIds.has(t.catId)).reduce((s, t) => s + t.amount, 0);
+  const saved  = txns.filter(t => (t.type === 'saving') || (t.type === 'expense' && savingsCatIds.has(t.catId))).reduce((s, t) => s + t.amount, 0);
   const remain = income - spent - saved;
   const spentMap = spentByCategory();
 
@@ -1696,7 +1701,7 @@ function renderReports() {
   const savingsCatIds = new Set(categories.filter(c => c.isSavings).map(c => c.id));
   const income = txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const spent  = txns.filter(t => t.type === 'expense' && !savingsCatIds.has(t.catId)).reduce((s, t) => s + t.amount, 0);
-  const saved  = txns.filter(t => t.type === 'expense' && savingsCatIds.has(t.catId)).reduce((s, t) => s + t.amount, 0);
+  const saved  = txns.filter(t => (t.type === 'saving') || (t.type === 'expense' && savingsCatIds.has(t.catId))).reduce((s, t) => s + t.amount, 0);
   const rate   = income > 0 ? Math.round((saved / income) * 100) : 0;
 
   document.getElementById('r-income').textContent = fmt(income);
@@ -1788,8 +1793,9 @@ function openAddTxn() {
   document.getElementById('txnHeroLabel').textContent = 'Expense · today';
   document.getElementById('txnAmount').value = '';
   document.getElementById('txnPayee').value  = '';
-  document.getElementById('txnCat').value       = '';
-  document.getElementById('txnIncomeCat').value = '';
+  document.getElementById('txnCat').value        = '';
+  document.getElementById('txnIncomeCat').value  = '';
+  document.getElementById('txnSavingCat').value  = '';
   renderCatPills(null);
   initSegDate();
   setType('expense');
@@ -1804,9 +1810,10 @@ function openEditTxn(id) {
   if (saveBtn) saveBtn.textContent = 'Update transaction';
   document.getElementById('txnAmount').value = t.amount;
   document.getElementById('txnPayee').value  = t.payee;
-  document.getElementById('txnCat').value       = t.catId || '';
-  document.getElementById('txnIncomeCat').value = t.incomeCatId || '';
-  renderCatPills(t.catId);
+  document.getElementById('txnCat').value        = t.type === 'expense' ? (t.catId || '') : '';
+  document.getElementById('txnIncomeCat').value  = t.incomeCatId || '';
+  document.getElementById('txnSavingCat').value  = t.type === 'saving' ? (t.catId || '') : '';
+  renderCatPills(t.type === 'expense' ? t.catId : null);
   const parts = t.date.split('-');
   document.getElementById('txnDay').value   = String(parseInt(parts[2]));
   document.getElementById('txnMonth').value = String(parseInt(parts[1]));
@@ -1822,11 +1829,32 @@ function closeModal() { document.getElementById('modalOverlay').classList.remove
 function setType(t) {
   txnType = t;
   document.getElementById('typeExp').className = 'type-btn' + (t === 'expense' ? ' active-exp' : '');
+  document.getElementById('typeSav').className = 'type-btn' + (t === 'saving'  ? ' active-exp' : '');
   document.getElementById('typeInc').className = 'type-btn' + (t === 'income'  ? ' active-inc' : '');
-  document.getElementById('catRow').style.display       = t === 'income' ? 'none' : '';
-  document.getElementById('incomeCatRow').style.display = t === 'income' ? '' : 'none';
+  document.getElementById('catRow').style.display        = t === 'expense' ? '' : 'none';
+  document.getElementById('savingCatRow').style.display  = t === 'saving'  ? '' : 'none';
+  document.getElementById('incomeCatRow').style.display  = t === 'income'  ? '' : 'none';
   if (t === 'income') renderIncomeCatPills(null);
+  if (t === 'saving') renderSavingCatPills(null);
   updateTxnHero();
+}
+
+function renderSavingCatPills(selectedId) {
+  const wrap = document.getElementById('txnSavingCatPills');
+  if (!wrap) return;
+  const savCats = categories.filter(c => c.isSavings);
+  wrap.innerHTML = savCats.map(c =>
+    `<button type="button" onclick="selectSavingCatPill(${c.id}, this)"
+      style="display:flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;border:1px solid ${selectedId == c.id ? 'transparent' : 'var(--border-strong)'};background:${selectedId == c.id ? '#EFF6FF' : 'var(--surface)'};cursor:pointer;font-size:13px;font-weight:${selectedId == c.id ? '500' : '400'};color:${selectedId == c.id ? '#1D4ED8' : 'var(--text-2)'};font-family:var(--font);transition:all 0.1s">
+      <span style="width:7px;height:7px;border-radius:50%;background:${c.color};flex-shrink:0"></span>${c.name}
+    </button>`
+  ).join('');
+  document.getElementById('txnSavingCat').value = selectedId ?? '';
+}
+
+function selectSavingCatPill(id, el) {
+  document.getElementById('txnSavingCat').value = id;
+  renderSavingCatPills(id);
 }
 
 function renderIncomeCatPills(selectedId) {
@@ -1850,8 +1878,8 @@ async function addTransaction() {
   const date   = document.getElementById('txnDate').value;
   const amount = parseFloat(document.getElementById('txnAmount').value.replace(',', '.'));
   const payee  = document.getElementById('txnPayee').value.trim();
-  const catId       = txnType === 'income' ? null : (parseInt(document.getElementById('txnCat').value) || null);
-  const incomeCatId = txnType === 'income' ? (parseInt(document.getElementById('txnIncomeCat').value) || null) : null;
+  const catId       = txnType === 'expense' ? (parseInt(document.getElementById('txnCat').value) || null) : (txnType === 'saving' ? (parseInt(document.getElementById('txnSavingCat').value) || null) : null);
+  const incomeCatId = txnType === 'income'  ? (parseInt(document.getElementById('txnIncomeCat').value) || null) : null;
 
   if (!date || isNaN(amount) || amount <= 0 || !payee) {
     alert('Please fill in date, description, and a valid amount.');
@@ -2248,7 +2276,7 @@ function updateTxnHero() {
   const amtEl  = document.getElementById('txnAmount');
   const dateEl = document.getElementById('txnDate');
   if (!lbl) return;
-  const type    = txnType === 'expense' ? 'Expense' : 'Income';
+  const type    = txnType === 'expense' ? 'Expense' : txnType === 'saving' ? 'Saving' : 'Income';
   const dateStr = dateEl?.value ? new Date(dateEl.value + 'T12:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : 'today';
   lbl.textContent = `${type} · ${dateStr}`;
   amtEl.style.color = txnType === 'expense' ? '#DC2626' : '#16A34A';
@@ -2257,7 +2285,8 @@ function updateTxnHero() {
 function renderCatPills(selectedId) {
   const wrap = document.getElementById('txnCatPills');
   if (!wrap) return;
-  wrap.innerHTML = categories.map(c =>
+  const spendCats = categories.filter(c => !c.isSavings);
+  wrap.innerHTML = spendCats.map(c =>
     `<button type="button" onclick="selectCatPill(${c.id}, this)"
       style="display:flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;border:1px solid ${selectedId == c.id ? 'transparent' : 'var(--border-strong)'};background:${selectedId == c.id ? '#EFF6FF' : 'var(--surface)'};cursor:pointer;font-size:13px;font-weight:${selectedId == c.id ? '500' : '400'};color:${selectedId == c.id ? '#1D4ED8' : 'var(--text-2)'};font-family:var(--font);transition:all 0.1s">
       <span style="width:7px;height:7px;border-radius:50%;background:${c.color};flex-shrink:0"></span>${c.name}

@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════
-//  Clarity PWA — Service Worker — build 23Aug2026-9
+//  Clarity PWA — Service Worker — build 23Aug2026-11
 //  Cache-first para assets locais, network-first para CDN externos.
 // ═══════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'clarity-v14';
+const CACHE_NAME = 'clarity-v16';
 
 // Ficheiros locais — sempre em cache
 const LOCAL_ASSETS = [
