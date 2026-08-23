@@ -931,6 +931,21 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="deleteCatModalOverlay">
+  <div class="modal" style="max-width:440px;min-height:238px;display:flex;flex-direction:column;padding:28px">
+    <div style="margin-bottom:16px">
+      <span class="modal-title" id="deleteCatModalTitle">Delete category</span>
+    </div>
+    <div style="flex:1">
+      <p id="deleteCatModalMsg" style="font-size:14px;color:var(--text-2);margin:0;line-height:1.8"></p>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:32px">
+      <button class="btn btn-outline" onclick="closeDeleteCatModal()">Cancel</button>
+      <button class="btn" style="background:#DC2626;color:#fff;border:none" onclick="confirmDeleteCat()">Delete</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="allTimeOverlay">
   <div class="modal" style="width:640px; max-height:85vh; overflow-y:auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
@@ -2139,11 +2154,46 @@ async function saveCat() {
   updateDbInfo();
 }
 
+let pendingDeleteId   = null;
+let pendingDeleteType = null; // 'spending' | 'income'
+
+function closeDeleteCatModal() {
+  document.getElementById('deleteCatModalOverlay').classList.remove('open');
+  pendingDeleteId   = null;
+  pendingDeleteType = null;
+}
+
+document.getElementById('deleteCatModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeDeleteCatModal();
+});
+
+async function confirmDeleteCat() {
+  if (pendingDeleteType === 'income') {
+    await _doDeleteIncomeCat(pendingDeleteId);
+  } else {
+    await _doDeleteCat(pendingDeleteId);
+  }
+  closeDeleteCatModal();
+}
+
 async function deleteCat(id) {
   const cat = categories.find(c => c.id === id);
   if (!cat) return;
   const inUse = transactions.some(t => t.catId === id);
-  if (inUse && !confirm(`"${cat.name}" has transactions linked to it. Delete anyway? Those transactions will become uncategorised.`)) return;
+  if (!inUse) {
+    await _doDeleteCat(id);
+    return;
+  }
+  // Show app modal
+  pendingDeleteId   = id;
+  pendingDeleteType = 'spending';
+  document.getElementById('deleteCatModalTitle').textContent = `Delete "${cat.name}"`;
+  document.getElementById('deleteCatModalMsg').innerHTML =
+    `This category has transactions linked to it.<br><br>If you delete it, those transactions will become <strong>uncategorised</strong> but will be kept in your history.`;
+  document.getElementById('deleteCatModalOverlay').classList.add('open');
+}
+
+async function _doDeleteCat(id) {
   await removeCategory(id);
   const idx = categories.findIndex(c => c.id === id);
   if (idx > -1) categories.splice(idx, 1);
@@ -2414,7 +2464,27 @@ async function saveIncomeCat() {
 async function deleteIncomeCat(id) {
   const cat = incomeCategories.find(c => c.id === id);
   if (!cat) return;
-  if (!confirm(`Delete "${cat.name}"?`)) return;
+  const inUse = transactions.some(t => t.incomeCatId === id);
+  if (!inUse) {
+    await _doDeleteIncomeCat(id);
+    return;
+  }
+  pendingDeleteId   = id;
+  pendingDeleteType = 'income';
+  document.getElementById('deleteCatModalTitle').textContent = `Delete "${cat.name}"`;
+  document.getElementById('deleteCatModalMsg').innerHTML =
+    `This income category has transactions linked to it.<br><br>Those transactions will become <strong>uncategorised</strong> but will be kept in your history.`;
+  document.getElementById('deleteCatModalOverlay').classList.add('open');
+}
+
+async function _doDeleteIncomeCat(id) {
+  // Set incomeCatId to null on affected transactions
+  for (const t of transactions) {
+    if (t.incomeCatId === id) {
+      t.incomeCatId = null;
+      await dbPut('transactions', t);
+    }
+  }
   await dbDelete('incomeCategories', id);
   incomeCategories = incomeCategories.filter(c => c.id !== id);
   renderIncomeCatRows();
