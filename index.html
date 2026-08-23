@@ -1522,6 +1522,7 @@ function toggleTypeFilter(val, el) {
   const badge = document.getElementById('typeBadge');
   if (badge) { badge.textContent = activeTypeFilters.size; badge.style.display = activeTypeFilters.size > 0 ? 'inline' : 'none'; }
   renderActiveChips();
+  renderCatFilter();
   renderTxns();
 }
 
@@ -1606,7 +1607,33 @@ function clearAllFilters() {
 function renderCatFilter() {
   const menu = document.getElementById('catDropMenu');
   if (!menu) return;
-  menu.innerHTML = categories.map(c =>
+
+  // Filter categories based on active type filters
+  const hasExpense = activeTypeFilters.has('expense');
+  const hasSaving  = activeTypeFilters.has('saving');
+  const hasIncome  = activeTypeFilters.has('income');
+  const noTypeFilter = activeTypeFilters.size === 0;
+
+  let visibleCats = [];
+
+  if (noTypeFilter) {
+    // Show all spending + savings categories (no income cats here — they use incomeCatId)
+    visibleCats = categories;
+  } else {
+    if (hasExpense) visibleCats = [...visibleCats, ...categories.filter(c => !c.isSavings)];
+    if (hasSaving)  visibleCats = [...visibleCats, ...categories.filter(c => c.isSavings)];
+    if (hasIncome)  visibleCats = [...visibleCats, ...incomeCategories];
+    // Deduplicate
+    const seen = new Set();
+    visibleCats = visibleCats.filter(c => { if (seen.has(c.id)) return false; seen.add(c.id); return true; });
+  }
+
+  if (visibleCats.length === 0) {
+    menu.innerHTML = `<div style="padding:10px 14px;font-size:13px;color:var(--text-3)">No categories for this type.</div>`;
+    return;
+  }
+
+  menu.innerHTML = visibleCats.map(c =>
     `<div class="fdd-item ${activeCatFilters.has(String(c.id)) ? 'checked' : ''}" data-cat="${c.id}" onclick="toggleCatFilter(${c.id},'${c.name}','${c.color}')">
       <span class="fdd-check"></span>
       <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${c.color};margin-right:8px;flex-shrink:0"></span>${c.name}
