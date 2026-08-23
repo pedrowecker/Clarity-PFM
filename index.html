@@ -2417,25 +2417,92 @@ document.getElementById('incomeCatModalOverlay').addEventListener('click', funct
 initApp();
 </script>
 
+<style>
+/* ── Banner de atualização ── */
+#sw-update-banner {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  z-index: 9999;
+  gap: 14px;
+  align-items: center;
+  white-space: nowrap;
+}
+#sw-update-banner button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+</style>
+<div id="sw-update-banner">
+  ✦ Nova versão disponível
+  <button onclick="swApplyUpdate()">Atualizar</button>
+</div>
+
 <script>
 // ── PWA: registo do service worker ───────────────────────────────
+let _swWaitingWorker = null;
+
+function swApplyUpdate() {
+  if (_swWaitingWorker) {
+    _swWaitingWorker.postMessage({ type: 'SKIP_WAITING' });
+  }
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
       .then(reg => {
         console.log('[Clarity] Service Worker registado:', reg.scope);
+
+        // Força verificação imediata de nova versão ao carregar
+        reg.update();
+
         // Verifica atualizações sempre que a app fica em foco
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') reg.update();
         });
         window.addEventListener('focus', () => reg.update());
+
+        // Se já há um SW à espera quando a página carrega
+        if (reg.waiting) {
+          _swWaitingWorker = reg.waiting;
+          document.getElementById('sw-update-banner').style.display = 'flex';
+        }
+
+        // Deteta novo SW instalado mas à espera de ativar
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // Há uma nova versão pronta — mostra o banner
+              _swWaitingWorker = newWorker;
+              document.getElementById('sw-update-banner').style.display = 'flex';
+            }
+          });
+        });
       })
       .catch(err => {
         console.warn('[Clarity] Service Worker falhou:', err);
       });
   });
 
-  // Quando há uma nova versão disponível, recarrega automaticamente
+  // Quando o SW muda (após SKIP_WAITING), recarrega a página
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     window.location.reload();
   });
