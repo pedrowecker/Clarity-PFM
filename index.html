@@ -1935,6 +1935,7 @@ function renderSettings() {
   renderIncomeCatRows();
 }
 
+
 function renderIncomeCatRows() {
   const tbody = document.getElementById('incomeTableBody');
   if (!tbody) return;
@@ -1951,8 +1952,11 @@ function renderIncomeCatRows() {
     const bg = i % 2 === 0 ? '#FFFFFF' : '#FAFAF8';
     const tr = document.createElement('tr');
     tr.style.background = bg;
+    tr.setAttribute('draggable', 'true');
+    tr.setAttribute('data-cat-id', cat.id);
+    tr.setAttribute('data-tbody', 'incomeTableBody');
     tr.innerHTML = `
-      <td style="padding:12px 8px 12px 16px; border-bottom:1px solid var(--border); color:var(--text-3); font-size:16px; user-select:none">⠿</td>
+      <td style="padding:12px 8px 12px 16px; border-bottom:1px solid var(--border); cursor:grab; color:var(--text-3); font-size:16px; user-select:none" title="Drag to reorder">⠿</td>
       <td style="padding:12px 16px; border-bottom:1px solid var(--border)">
         <div style="display:flex;align-items:center;gap:9px;font-weight:500">
           <span class="cat-color-dot" style="background:${cat.color};flex-shrink:0"></span>
@@ -1971,6 +1975,7 @@ function renderIncomeCatRows() {
     `;
     tbody.appendChild(tr);
   });
+  initDragDrop('incomeTableBody');
 }
 
 // ─── Drag & Drop ──────────────────────────────────────────────
@@ -2005,14 +2010,23 @@ function initDragDrop(tbodyId) {
 
       const srcId  = parseInt(dragSrc.getAttribute('data-cat-id'));
       const destId = parseInt(row.getAttribute('data-cat-id'));
-      const srcIdx  = categories.findIndex(c => c.id === srcId);
-      const destIdx = categories.findIndex(c => c.id === destId);
-      const [moved] = categories.splice(srcIdx, 1);
-      categories.splice(destIdx, 0, moved);
 
-      await dbSetMeta('categoryOrder', categories.map(c => c.id));
-      renderSettings();
-      render();
+      if (tbodyId === 'incomeTableBody') {
+        const srcIdx  = incomeCategories.findIndex(c => c.id === srcId);
+        const destIdx = incomeCategories.findIndex(c => c.id === destId);
+        const [moved] = incomeCategories.splice(srcIdx, 1);
+        incomeCategories.splice(destIdx, 0, moved);
+        await dbSetMeta('incomeCategoryOrder', incomeCategories.map(c => c.id));
+        renderIncomeCatRows();
+      } else {
+        const srcIdx  = categories.findIndex(c => c.id === srcId);
+        const destIdx = categories.findIndex(c => c.id === destId);
+        const [moved] = categories.splice(srcIdx, 1);
+        categories.splice(destIdx, 0, moved);
+        await dbSetMeta('categoryOrder', categories.map(c => c.id));
+        renderSettings();
+        render();
+      }
     });
   });
 }
@@ -2417,92 +2431,25 @@ document.getElementById('incomeCatModalOverlay').addEventListener('click', funct
 initApp();
 </script>
 
-<style>
-/* ── Banner de atualização ── */
-#sw-update-banner {
-  display: none;
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--text);
-  color: #fff;
-  padding: 12px 20px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: var(--shadow-lg);
-  z-index: 9999;
-  gap: 14px;
-  align-items: center;
-  white-space: nowrap;
-}
-#sw-update-banner button {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 7px;
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-</style>
-<div id="sw-update-banner">
-  ✦ Nova versão disponível
-  <button onclick="swApplyUpdate()">Atualizar</button>
-</div>
-
 <script>
 // ── PWA: registo do service worker ───────────────────────────────
-let _swWaitingWorker = null;
-
-function swApplyUpdate() {
-  if (_swWaitingWorker) {
-    _swWaitingWorker.postMessage({ type: 'SKIP_WAITING' });
-  }
-}
-
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
       .then(reg => {
         console.log('[Clarity] Service Worker registado:', reg.scope);
-
-        // Força verificação imediata de nova versão ao carregar
-        reg.update();
-
         // Verifica atualizações sempre que a app fica em foco
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') reg.update();
         });
         window.addEventListener('focus', () => reg.update());
-
-        // Se já há um SW à espera quando a página carrega
-        if (reg.waiting) {
-          _swWaitingWorker = reg.waiting;
-          document.getElementById('sw-update-banner').style.display = 'flex';
-        }
-
-        // Deteta novo SW instalado mas à espera de ativar
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          if (!newWorker) return;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // Há uma nova versão pronta — mostra o banner
-              _swWaitingWorker = newWorker;
-              document.getElementById('sw-update-banner').style.display = 'flex';
-            }
-          });
-        });
       })
       .catch(err => {
         console.warn('[Clarity] Service Worker falhou:', err);
       });
   });
 
-  // Quando o SW muda (após SKIP_WAITING), recarrega a página
+  // Quando há uma nova versão disponível, recarrega automaticamente
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     window.location.reload();
   });
