@@ -344,6 +344,7 @@
   .txn-amount { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; font-size: 14px; }
   .txn-amount.expense { color: var(--red); }
   .txn-amount.income { color: var(--green); }
+  .txn-amount.saving { color: #7C3AED; }
   .del-btn {
     background: none;
     border: none;
@@ -1752,7 +1753,9 @@ function renderTxns() {
   }
 
   tbody.innerHTML = list.map(t => {
-    const cat     = t.catId ? catById(t.catId) : null;
+    const cat = t.type === 'income'
+      ? (t.incomeCatId ? incomeCategories.find(c => c.id === t.incomeCatId) : null)
+      : (t.catId ? catById(t.catId) : null);
     const dateObj = new Date(t.date + 'T00:00:00');
     const dateStr = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     const catBadge = cat
@@ -1763,7 +1766,7 @@ function renderTxns() {
       <td class="txn-date">${dateStr}</td>
       <td><div class="txn-payee">${t.payee}</div></td>
       <td class="txn-cat">${catBadge}</td>
-      <td class="txn-amount ${t.type}">${sign}${fmt(t.amount)}</td>
+      <td class="txn-amount ${t.type === 'saving' ? 'saving' : t.type}">${sign}${fmt(t.amount)}</td>
       <td style="display:flex;gap:4px;justify-content:flex-end;padding:12px 16px">
         <button class="del-btn edit-btn" onclick="openEditTxn(${t.id})" title="Edit">✎</button>
         <button class="del-btn" onclick="deleteTxn(${t.id})" title="Delete">✕</button>
