@@ -557,7 +557,7 @@
         <thead>
           <tr>
             <th>Category</th>
-            <th style="text-align:right">Budgeted</th>
+            <th style="text-align:right">Goal</th>
             <th style="text-align:right">Saved</th>
             <th style="text-align:right">Remaining</th>
             <th style="text-align:left">Progress</th>
@@ -694,10 +694,10 @@
       </div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:0">
-          <button class="month-btn" onclick="changeSettingsMonth(-1)">&#8249;</button>
+        <div style="display:flex;align-items:center;gap:0;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px">
+          <button class="month-btn" onclick="changeSettingsMonth(-1)" style="background:transparent;border:none">&#8249;</button>
           <span id="settingsMonthLabel" class="month-label"></span>
-          <button class="month-btn" onclick="changeSettingsMonth(1)">&#8250;</button>
+          <button class="month-btn" onclick="changeSettingsMonth(1)" style="background:transparent;border:none">&#8250;</button>
         </div>
         <button class="btn btn-outline" id="usePastMonthBtn" onclick="usePastMonthSetup()" style="font-size:12px">↙ Use past month setup</button>
       </div>
@@ -1723,7 +1723,7 @@ function renderBudget() {
     tr.innerHTML = `
       <td><div class="cat-name"><span class="cat-dot" style="background:${cat.color}"></span>${cat.name}</div></td>
       <td class="num">${fmt(cat.budgeted)}</td>
-      <td class="num" style="color:${catSaved > 0 ? 'var(--green)' : 'var(--text)'}">${fmt(catSaved)}</td>
+      <td class="num" style="color:var(--text)">${fmt(catSaved)}</td>
       <td class="num" style="color:${avail >= 0 ? 'var(--green)' : 'var(--red)'}">${avail < 0 ? '-' : ''}${fmt(Math.abs(avail))}</td>
       <td><div class="progress-wrap"><div class="progress-bar-bg"><div class="progress-bar" style="width:${pct}%;background:${barColor}"></div></div><span class="pct-label">${Math.round(pct)}%</span></div></td>
       <td><span class="status-pill ${statusClass}">${statusText}</span></td>`;
@@ -1733,7 +1733,7 @@ function renderBudget() {
   document.getElementById('saveTotals').innerHTML = `
     <td style="padding:11px 16px;font-size:12px;color:var(--text-2)">Total</td>
     <td class="num" style="padding:11px 16px">${fmt(saveGoal)}</td>
-    <td class="num" style="padding:11px 16px;color:${saveTotal > 0 ? 'var(--green)' : 'var(--text)'}">${fmt(saveTotal)}</td>
+    <td class="num" style="padding:11px 16px;color:var(--text)">${fmt(saveTotal)}</td>
     <td class="num" style="padding:11px 16px;color:${saveAvail >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt(Math.abs(saveAvail))}</td>
     <td style="padding:11px 16px"></td><td style="padding:11px 16px"></td>`;
 }
