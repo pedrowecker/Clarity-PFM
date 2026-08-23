@@ -667,6 +667,10 @@
           </div>
         </div>
         <div class="chart-card">
+          <div class="chart-title">Income by source</div>
+          <div id="incomeLegend" style="display:flex;flex-direction:column;gap:0;min-width:0"></div>
+        </div>
+        <div class="chart-card full-width">
           <div class="chart-title">Budgeted vs. real</div>
           <div class="chart-wrap"><canvas id="barChart"></canvas></div>
         </div>
@@ -1757,6 +1761,9 @@ function renderReports() {
   });
   const dayLabels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
+  // ── Income by source ──
+  renderIncomeBySource();
+
   if (charts.line) charts.line.destroy();
   charts.line = new Chart(document.getElementById('lineChart'), {
     type: 'line',
@@ -2325,6 +2332,60 @@ function updateTodayLabel() {
 }
 
 // ─── All time modal ───────────────────────────────────────────────
+function renderIncomeBySource() {
+  const el = document.getElementById('incomeLegend');
+  if (!el) return;
+
+  const txns = monthlyTxns();
+  const incomeMap = {};
+  txns.filter(t => t.type === 'income' && t.incomeCatId).forEach(t => {
+    incomeMap[t.incomeCatId] = (incomeMap[t.incomeCatId] || 0) + t.amount;
+  });
+  // also count uncategorised income
+  const uncatIncome = txns.filter(t => t.type === 'income' && !t.incomeCatId).reduce((s, t) => s + t.amount, 0);
+  const total = Object.values(incomeMap).reduce((s, v) => s + v, 0) + uncatIncome;
+
+  if (total === 0 && Object.keys(incomeMap).length === 0) {
+    el.innerHTML = `<div style="font-size:13px;color:var(--text-3);padding:16px 0">No income recorded yet.</div>`;
+    return;
+  }
+
+  const rows = incomeCategories
+    .filter(c => incomeMap[c.id])
+    .sort((a, b) => incomeMap[b.id] - incomeMap[a.id]);
+
+  let html = rows.map(c => {
+    const amt = incomeMap[c.id] || 0;
+    const pct = total > 0 ? Math.round((amt / total) * 100) : 0;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:7px;min-width:0;overflow:hidden">
+        <div style="width:8px;height:8px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+        <span style="font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <span style="font-size:13px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--text)">${fmt(amt)}</span>
+        <span style="font-size:11px;color:var(--text-3);min-width:28px;text-align:right">${pct}%</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  if (uncatIncome > 0) {
+    const pct = total > 0 ? Math.round((uncatIncome / total) * 100) : 0;
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--border-strong);flex-shrink:0"></div>
+        <span style="font-size:13px;color:var(--text-3)">Uncategorised</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <span style="font-size:13px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--text-2)">${fmt(uncatIncome)}</span>
+        <span style="font-size:11px;color:var(--text-3);min-width:28px;text-align:right">${pct}%</span>
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
 function openAllTime() {
   const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const spent  = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
