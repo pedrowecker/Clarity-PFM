@@ -472,7 +472,7 @@
       <button class="pill-btn" onclick="showView('transactions', this)">Transactions</button>
       <button class="pill-btn" onclick="showView('reports', this)">Dashboard</button>
     </nav>
-    <div class="topbar-center">
+    <div class="topbar-center" id="topbarMonthNav">
       <button class="month-btn" onclick="changeMonth(-1)">&#8249;</button>
       <span class="month-label" id="monthLabel"></span>
       <button class="month-btn" onclick="changeMonth(1)">&#8250;</button>
@@ -665,7 +665,7 @@
       </div>
       <div class="charts-grid">
         <div class="chart-card">
-          <div class="chart-title">Spending by category</div>
+          <div class="chart-title">Total outflows</div>
           <div style="display:flex;gap:20px;align-items:center">
             <div class="chart-wrap" style="width:180px;height:180px;flex-shrink:0"><canvas id="doughnutChart"></canvas></div>
             <div id="doughnutLegend" style="flex:1;display:flex;flex-direction:column;gap:7px;min-width:0"></div>
@@ -691,6 +691,15 @@
       <div class="page-header">
         <div class="page-title">Budget settings</div>
         <div class="page-sub">Define how much to allocate to each category.</div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:0">
+          <button class="month-btn" onclick="changeSettingsMonth(-1)">&#8249;</button>
+          <span id="settingsMonthLabel" class="month-label"></span>
+          <button class="month-btn" onclick="changeSettingsMonth(1)">&#8250;</button>
+        </div>
+        <button class="btn btn-outline" id="usePastMonthBtn" onclick="usePastMonthSetup()" style="font-size:12px">↙ Use past month setup</button>
       </div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -941,6 +950,41 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="noSetupModalOverlay">
+  <div class="modal">
+    <div class="modal-title">No setup found</div>
+    <div class="form-row" style="padding-top:0">
+      <p style="font-size:14px;color:var(--text-2);margin:0;line-height:1.7">
+        No categories were defined for <strong id="noSetupModalMonth"></strong>.
+      </p>
+      <p style="font-size:13px;color:var(--text-3);margin:10px 0 0;line-height:1.7">
+        Go back to that month and add categories first.
+      </p>
+    </div>
+    <div class="modal-actions" style="justify-content:flex-end">
+      <button class="btn btn-primary" onclick="document.getElementById('noSetupModalOverlay').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="pastMonthModalOverlay">
+  <div class="modal">
+    <div class="modal-title">Use past month setup</div>
+    <div class="form-row" style="padding-top:0">
+      <p style="font-size:14px;color:var(--text-2);margin:0;line-height:1.7">
+        Copy categories from <strong id="pastMonthModalFrom"></strong> to <strong id="pastMonthModalTo"></strong>.
+      </p>
+      <p style="font-size:13px;color:var(--text-3);margin:10px 0 0;line-height:1.7">
+        This will replace the current month's categories.
+      </p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closePastMonthModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmPastMonthSetup()">Copy setup</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="restoreModalOverlay">
   <div class="modal">
     <div class="modal-title">Restore backup</div>
@@ -1052,8 +1096,19 @@ const DEFAULT_CATEGORIES = [
 // ═══════════════════════════════════════════════════════════════════
 
 const DB_NAME    = 'ClarityPFM';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 let db = null;
+
+// Settings month (independent from current budget month)
+let settingsMonth = new Date().getMonth();
+let settingsYear  = new Date().getFullYear();
+
+function settingsMonthKey(m, y) {
+  return `${y}-${String(m + 1).padStart(2, '0')}`;
+}
+function currentSettingsKey() {
+  return settingsMonthKey(settingsMonth, settingsYear);
+}
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -1072,6 +1127,12 @@ function openDB() {
       }
       if (!d.objectStoreNames.contains('incomeCategories')) {
         d.createObjectStore('incomeCategories', { keyPath: 'id' });
+      }
+      if (!d.objectStoreNames.contains('monthlyCategories')) {
+        d.createObjectStore('monthlyCategories', { keyPath: 'monthKey' });
+      }
+      if (!d.objectStoreNames.contains('monthlyIncomeCategories')) {
+        d.createObjectStore('monthlyIncomeCategories', { keyPath: 'monthKey' });
       }
     };
 
@@ -1142,13 +1203,23 @@ async function removeTransaction(id) {
 }
 
 async function saveCategory(cat) {
-  await dbPut('categories', cat);
+  // Update in-memory array
+  const idx = categories.findIndex(c => c.id === cat.id);
+  if (idx > -1) categories[idx] = cat; else categories.push(cat);
+  await saveMonthCategories(currentSettingsKey(), categories);
   await dbSetMeta('nextCatId', nextCatId);
-  flashSaved();
+}
+
+async function saveIncomeCategory(cat) {
+  const idx = incomeCategories.findIndex(c => c.id === cat.id);
+  if (idx > -1) incomeCategories[idx] = cat; else incomeCategories.push(cat);
+  await saveMonthIncomeCategories(currentSettingsKey(), incomeCategories);
+  await dbSetMeta('nextIncomeCatId', nextIncomeCatId);
 }
 
 async function removeCategory(id) {
-  await dbDelete('categories', id);
+  categories = categories.filter(c => c.id !== id);
+  await saveMonthCategories(currentSettingsKey(), categories);
   // Update any transactions that used this category
   for (const t of transactions) {
     if (t.catId === id) {
@@ -1156,12 +1227,128 @@ async function removeCategory(id) {
       await dbPut('transactions', t);
     }
   }
-  flashSaved();
 }
 
 async function saveMeta() {
   await dbSetMeta('nextId', nextId);
   await dbSetMeta('nextCatId', nextCatId);
+}
+
+// ── Monthly categories helpers ────────────────────────────────────
+async function loadMonthCategories(monthKey) {
+  return new Promise((resolve) => {
+    try {
+      const tx  = db.transaction('monthlyCategories', 'readonly');
+      const req = tx.objectStore('monthlyCategories').get(monthKey);
+      req.onsuccess = () => resolve(req.result ? req.result.categories : null);
+      req.onerror   = () => resolve(null);
+    } catch { resolve(null); }
+  });
+}
+
+async function saveMonthCategories(monthKey, cats) {
+  await dbPut('monthlyCategories', { monthKey, categories: cats });
+  flashSaved();
+}
+
+async function loadMonthIncomeCategories(monthKey) {
+  return new Promise((resolve) => {
+    try {
+      const tx  = db.transaction('monthlyIncomeCategories', 'readonly');
+      const req = tx.objectStore('monthlyIncomeCategories').get(monthKey);
+      req.onsuccess = () => resolve(req.result ? req.result.categories : null);
+      req.onerror   = () => resolve(null);
+    } catch { resolve(null); }
+  });
+}
+
+async function saveMonthIncomeCategories(monthKey, cats) {
+  await dbPut('monthlyIncomeCategories', { monthKey, categories: cats });
+  flashSaved();
+}
+
+async function switchSettingsMonth(m, y) {
+  settingsMonth = m;
+  settingsYear  = y;
+  const key = currentSettingsKey();
+
+  // Load categories for this month
+  const storedCats = await loadMonthCategories(key);
+  const storedIncomeCats = await loadMonthIncomeCategories(key);
+  categories       = storedCats       !== null ? storedCats       : [];
+  incomeCategories = storedIncomeCats !== null ? storedIncomeCats : [];
+
+  updateSettingsMonthLabel();
+  renderSettings();
+  render();
+}
+
+function updateSettingsMonthLabel() {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const el = document.getElementById('settingsMonthLabel');
+  if (el) el.textContent = months[settingsMonth] + ' ' + settingsYear;
+}
+
+function changeSettingsMonth(dir) {
+  let m = settingsMonth + dir;
+  let y = settingsYear;
+  if (m > 11) { m = 0; y++; }
+  if (m < 0)  { m = 11; y--; }
+  switchSettingsMonth(m, y);
+}
+
+async function usePastMonthSetup() {
+  let pm = settingsMonth - 1;
+  let py = settingsYear;
+  if (pm < 0) { pm = 11; py--; }
+  const pastKey = settingsMonthKey(pm, py);
+
+  const pastCats = await loadMonthCategories(pastKey);
+  const pastIncomeCats = await loadMonthIncomeCategories(pastKey);
+
+  if ((!pastCats || pastCats.length === 0) && (!pastIncomeCats || pastIncomeCats.length === 0)) {
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('noSetupModalMonth').textContent = `${months[pm]} ${py}`;
+    document.getElementById('noSetupModalOverlay').classList.add('open');
+    return;
+  }
+
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  // Store pending data and show app modal
+  pendingPastMonth = { pastCats, pastIncomeCats, pm, py };
+  document.getElementById('pastMonthModalFrom').textContent = `${months[pm]} ${py}`;
+  document.getElementById('pastMonthModalTo').textContent   = `${months[settingsMonth]} ${settingsYear}`;
+  document.getElementById('pastMonthModalOverlay').classList.add('open');
+  return;
+}
+
+let pendingPastMonth = null;
+
+function closePastMonthModal() {
+  document.getElementById('pastMonthModalOverlay').classList.remove('open');
+  pendingPastMonth = null;
+}
+
+async function confirmPastMonthSetup() {
+  if (!pendingPastMonth) return;
+  const { pastCats, pastIncomeCats } = pendingPastMonth;
+  closePastMonthModal();
+
+  // Deep copy with new IDs to avoid conflicts
+  if (pastCats) {
+    categories = pastCats.map(c => ({ ...c, id: nextCatId++ }));
+    await saveMonthCategories(currentSettingsKey(), categories);
+    await dbSetMeta('nextCatId', nextCatId);
+  }
+  if (pastIncomeCats) {
+    incomeCategories = pastIncomeCats.map(c => ({ ...c, id: nextIncomeCatId++ }));
+    await saveMonthIncomeCategories(currentSettingsKey(), incomeCategories);
+    await dbSetMeta('nextIncomeCatId', nextIncomeCatId);
+  }
+
+  renderSettings();
+  render();
 }
 
 // ─── Indicador visual de auto-save ───────────────────────────────
@@ -1190,30 +1377,43 @@ async function initApp() {
   try {
     await openDB();
 
-    // Carrega categorias
-    const storedCats = await dbGetAll('categories');
-    if (storedCats.length > 0) {
-      const order = await dbGetMeta('categoryOrder');
-      if (order && Array.isArray(order)) {
-        categories = order.map(id => storedCats.find(c => c.id === id)).filter(Boolean);
-        // append any cats not in order (new ones)
-        storedCats.forEach(c => { if (!categories.find(x => x.id === c.id)) categories.push(c); });
-      } else {
-        categories = storedCats;
-      }
+    // Carrega categorias — agora por mês
+    const currentMonthKey = currentSettingsKey();
+    const storedMonthCats = await loadMonthCategories(currentMonthKey);
+
+    if (storedMonthCats !== null) {
+      categories = storedMonthCats;
     } else {
-      // Primeira vez: usa as categorias padrão e guarda-as
-      categories = DEFAULT_CATEGORIES.map(c => ({ ...c }));
-      for (const c of categories) await dbPut('categories', c);
+      // Migra categorias globais antigas para o mês atual
+      const storedCats = await dbGetAll('categories');
+      if (storedCats.length > 0) {
+        const order = await dbGetMeta('categoryOrder');
+        if (order && Array.isArray(order)) {
+          categories = order.map(id => storedCats.find(c => c.id === id)).filter(Boolean);
+          storedCats.forEach(c => { if (!categories.find(x => x.id === c.id)) categories.push(c); });
+        } else {
+          categories = storedCats;
+        }
+        // Save to monthly store
+        await saveMonthCategories(currentMonthKey, categories);
+      } else {
+        categories = [];
+      }
     }
 
-    // Carrega income categories
-    const storedIncomeCats = await dbGetAll('incomeCategories');
-    if (storedIncomeCats.length > 0) {
-      incomeCategories = storedIncomeCats;
+    // Carrega income categories — agora por mês
+    const storedMonthIncomeCats = await loadMonthIncomeCategories(currentMonthKey);
+    if (storedMonthIncomeCats !== null) {
+      incomeCategories = storedMonthIncomeCats;
     } else {
-      incomeCategories = DEFAULT_INCOME_CATEGORIES.map(c => ({ ...c }));
-      for (const c of incomeCategories) await dbPut('incomeCategories', c);
+      // Migrate old global income categories
+      const storedIncomeCats = await dbGetAll('incomeCategories');
+      if (storedIncomeCats.length > 0) {
+        incomeCategories = storedIncomeCats;
+        await saveMonthIncomeCategories(currentMonthKey, incomeCategories);
+      } else {
+        incomeCategories = [];
+      }
     }
     const storedNextIncomeCatId = await dbGetMeta('nextIncomeCatId');
     if (storedNextIncomeCatId !== null) nextIncomeCatId = storedNextIncomeCatId;
@@ -1245,6 +1445,7 @@ async function initApp() {
     if (label) label.textContent = 'Autosave on';
 
     updateDbInfo();
+    updateSettingsMonthLabel();
     render();
     updateTodayLabel();
 
@@ -1401,15 +1602,31 @@ function showView(id, el) {
     if (el.classList.contains('pill-btn')) el.classList.add('active');
     if (el.id === 'settingsBtn') el.classList.add('active');
   }
+  // Hide topbar month nav in settings, show in other views
+  const topbarNav = document.getElementById('topbarMonthNav');
+  if (topbarNav) topbarNav.style.visibility = id === 'settings' ? 'hidden' : '';
   if (id === 'budget') renderBudget();
   if (id === 'reports') renderReports();
-  if (id === 'settings') { renderSettings(); updateDbInfo(); }
+  if (id === 'settings') { updateSettingsMonthLabel(); renderSettings(); updateDbInfo(); }
 }
 
-function changeMonth(dir) {
+async function changeMonth(dir) {
   currentMonth += dir;
   if (currentMonth > 11) { currentMonth = 0; currentYear++; }
   if (currentMonth < 0)  { currentMonth = 11; currentYear--; }
+
+  // Load categories for this budget month — always reset to avoid bleeding between months
+  const key = settingsMonthKey(currentMonth, currentYear);
+  const monthCats = await loadMonthCategories(key);
+  const monthIncomeCats = await loadMonthIncomeCategories(key);
+  categories       = monthCats       !== null ? monthCats       : [];
+  incomeCategories = monthIncomeCats !== null ? monthIncomeCats : [];
+
+  // Sync settings month to budget month
+  settingsMonth = currentMonth;
+  settingsYear  = currentYear;
+  updateSettingsMonthLabel();
+
   render();
   if (document.getElementById('view-reports').classList.contains('active')) renderReports();
 }
@@ -1766,7 +1983,7 @@ function renderTxns() {
       <td class="txn-date">${dateStr}</td>
       <td><div class="txn-payee">${t.payee}</div></td>
       <td class="txn-cat">${catBadge}</td>
-      <td class="txn-amount ${t.type === 'saving' ? 'saving' : t.type}">${sign}${fmt(t.amount)}</td>
+      <td class="txn-amount ${t.type === 'income' ? 'income' : 'expense'}">${sign}${fmt(t.amount)}</td>
       <td style="display:flex;gap:4px;justify-content:flex-end;padding:12px 16px">
         <button class="del-btn edit-btn" onclick="openEditTxn(${t.id})" title="Edit">✎</button>
         <button class="del-btn" onclick="deleteTxn(${t.id})" title="Delete">✕</button>
@@ -2176,8 +2393,9 @@ async function updateBudget(id, val) {
   const cat = categories.find(c => c.id === id);
   if (cat) {
     cat.budgeted = parseFloat(val) || 0;
-    await saveCategory(cat);
+    await saveMonthCategories(currentSettingsKey(), categories);
     render();
+    flashSaved();
   }
 }
 
@@ -2260,9 +2478,7 @@ async function saveCat() {
     }
   } else {
     const newCat = { id: nextCatId++, name, color: selectedColor, budgeted, isSavings };
-    categories.push(newCat);
     await saveCategory(newCat);
-    await dbSetMeta('nextCatId', nextCatId);
   }
 
   closeCatModal();
@@ -2312,8 +2528,6 @@ async function deleteCat(id) {
 
 async function _doDeleteCat(id) {
   await removeCategory(id);
-  const idx = categories.findIndex(c => c.id === id);
-  if (idx > -1) categories.splice(idx, 1);
   render();
   renderSettings();
   updateDbInfo();
@@ -2622,11 +2836,12 @@ async function saveIncomeCat() {
 
   if (editingIncomeCatId !== null) {
     const cat = incomeCategories.find(c => c.id === editingIncomeCatId);
-    if (cat) { cat.name = name; cat.color = selectedIncomeColor; await dbPut('incomeCategories', cat); }
+    if (cat) { cat.name = name; cat.color = selectedIncomeColor; }
+    await saveMonthIncomeCategories(currentSettingsKey(), incomeCategories);
   } else {
     const newCat = { id: nextIncomeCatId++, name, color: selectedIncomeColor };
     incomeCategories.push(newCat);
-    await dbPut('incomeCategories', newCat);
+    await saveMonthIncomeCategories(currentSettingsKey(), incomeCategories);
     await dbSetMeta('nextIncomeCatId', nextIncomeCatId);
   }
 
@@ -2652,15 +2867,14 @@ async function deleteIncomeCat(id) {
 }
 
 async function _doDeleteIncomeCat(id) {
-  // Set incomeCatId to null on affected transactions
   for (const t of transactions) {
     if (t.incomeCatId === id) {
       t.incomeCatId = null;
       await dbPut('transactions', t);
     }
   }
-  await dbDelete('incomeCategories', id);
   incomeCategories = incomeCategories.filter(c => c.id !== id);
+  await saveMonthIncomeCategories(currentSettingsKey(), incomeCategories);
   renderIncomeCatRows();
   flashSaved();
 }
