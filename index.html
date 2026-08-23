@@ -736,6 +736,30 @@
         </table>
       </div>
 
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:28px;margin-bottom:12px">
+        <span class="section-title">Income Categories</span>
+        <button class="btn btn-primary" onclick="openAddIncomeCat()">+ New category</button>
+      </div>
+      <div class="settings-card">
+        <table class="cat-table" style="width:100%">
+          <colgroup>
+            <col style="width:36px">
+            <col>
+            <col style="width:70px">
+            <col style="width:80px">
+          </colgroup>
+          <thead>
+            <tr>
+              <th></th>
+              <th style="text-align:left;padding-left:16px">Category</th>
+              <th style="text-align:center">Colour</th>
+              <th style="text-align:center">Action</th>
+            </tr>
+          </thead>
+          <tbody id="incomeTableBody"></tbody>
+        </table>
+      </div>
+
       <!-- Advanced Settings (collapsed) -->
       <div style="margin-top:20px">
         <button onclick="toggleAdvanced()" id="advancedToggleBtn"
@@ -868,6 +892,11 @@
       <div id="txnCatPills" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;"></div>
       <input type="hidden" id="txnCat">
     </div>
+    <div class="form-row" id="incomeCatRow" style="display:none">
+      <label class="form-label">Income category</label>
+      <div id="txnIncomeCatPills" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;"></div>
+      <input type="hidden" id="txnIncomeCat">
+    </div>
 
     <div class="modal-actions" style="margin-top:24px;">
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
@@ -879,6 +908,29 @@
 
 
 <!-- Modal: All time -->
+<div class="modal-overlay" id="incomeCatModalOverlay">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title" id="incomeCatModalTitle">New income category</span>
+      <button class="modal-close" onclick="closeIncomeCatModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">Category name</label>
+        <input class="form-input" type="text" id="incomeCatName" placeholder="e.g. Salary">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Colour</label>
+        <div class="color-picker" id="incomeCatColorPicker"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeIncomeCatModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveIncomeCat()">Save category</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="allTimeOverlay">
   <div class="modal" style="width:640px; max-height:85vh; overflow-y:auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
@@ -926,6 +978,19 @@ let nextId    = 1;
 let nextCatId = 9;
 
 // ── Categorias padrão (apenas usadas se a DB estiver vazia) ──
+const DEFAULT_INCOME_CATEGORIES = [
+  { id: 101, name: 'Salary',       color: '#15803D' },
+  { id: 102, name: 'Freelance',    color: '#0E7490' },
+  { id: 103, name: 'Rental Income',color: '#7C3AED' },
+  { id: 104, name: 'Dividends',    color: '#2D42B0' },
+  { id: 105, name: 'Side Business',color: '#B45309' },
+  { id: 106, name: 'Benefits',     color: '#BE185D' },
+  { id: 107, name: 'Other',        color: '#4D7C0F' },
+];
+
+let incomeCategories = [];
+let nextIncomeCatId = 108;
+
 const DEFAULT_CATEGORIES = [
   { id: 1, name: 'Housing',       color: COLORS[0], budgeted: 900  },
   { id: 2, name: 'Groceries',     color: COLORS[1], budgeted: 400  },
@@ -959,6 +1024,9 @@ function openDB() {
       }
       if (!d.objectStoreNames.contains('meta')) {
         d.createObjectStore('meta', { keyPath: 'key' });
+      }
+      if (!d.objectStoreNames.contains('incomeCategories')) {
+        d.createObjectStore('incomeCategories', { keyPath: 'id' });
       }
     };
 
@@ -1093,6 +1161,17 @@ async function initApp() {
       categories = DEFAULT_CATEGORIES.map(c => ({ ...c }));
       for (const c of categories) await dbPut('categories', c);
     }
+
+    // Carrega income categories
+    const storedIncomeCats = await dbGetAll('incomeCategories');
+    if (storedIncomeCats.length > 0) {
+      incomeCategories = storedIncomeCats;
+    } else {
+      incomeCategories = DEFAULT_INCOME_CATEGORIES.map(c => ({ ...c }));
+      for (const c of incomeCategories) await dbPut('incomeCategories', c);
+    }
+    const storedNextIncomeCatId = await dbGetMeta('nextIncomeCatId');
+    if (storedNextIncomeCatId !== null) nextIncomeCatId = storedNextIncomeCatId;
 
     // Carrega transações
     transactions = await dbGetAll('transactions');
@@ -1684,7 +1763,8 @@ function openAddTxn() {
   document.getElementById('txnHeroLabel').textContent = 'Expense · today';
   document.getElementById('txnAmount').value = '';
   document.getElementById('txnPayee').value  = '';
-  document.getElementById('txnCat').value    = '';
+  document.getElementById('txnCat').value       = '';
+  document.getElementById('txnIncomeCat').value = '';
   renderCatPills(null);
   initSegDate();
   setType('expense');
@@ -1699,7 +1779,8 @@ function openEditTxn(id) {
   if (saveBtn) saveBtn.textContent = 'Update transaction';
   document.getElementById('txnAmount').value = t.amount;
   document.getElementById('txnPayee').value  = t.payee;
-  document.getElementById('txnCat').value    = t.catId || '';
+  document.getElementById('txnCat').value       = t.catId || '';
+  document.getElementById('txnIncomeCat').value = t.incomeCatId || '';
   renderCatPills(t.catId);
   const parts = t.date.split('-');
   document.getElementById('txnDay').value   = String(parseInt(parts[2]));
@@ -1717,15 +1798,35 @@ function setType(t) {
   txnType = t;
   document.getElementById('typeExp').className = 'type-btn' + (t === 'expense' ? ' active-exp' : '');
   document.getElementById('typeInc').className = 'type-btn' + (t === 'income'  ? ' active-inc' : '');
-  document.getElementById('catRow').style.display = t === 'income' ? 'none' : '';
+  document.getElementById('catRow').style.display       = t === 'income' ? 'none' : '';
+  document.getElementById('incomeCatRow').style.display = t === 'income' ? '' : 'none';
+  if (t === 'income') renderIncomeCatPills(null);
   updateTxnHero();
+}
+
+function renderIncomeCatPills(selectedId) {
+  const wrap = document.getElementById('txnIncomeCatPills');
+  if (!wrap) return;
+  wrap.innerHTML = incomeCategories.map(c =>
+    `<button type="button" onclick="selectIncomeCatPill(${c.id}, this)"
+      style="display:flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;border:1px solid ${selectedId == c.id ? 'transparent' : 'var(--border-strong)'};background:${selectedId == c.id ? '#EFF6FF' : 'var(--surface)'};cursor:pointer;font-size:13px;font-weight:${selectedId == c.id ? '500' : '400'};color:${selectedId == c.id ? '#1D4ED8' : 'var(--text-2)'};font-family:var(--font);transition:all 0.1s">
+      <span style="width:7px;height:7px;border-radius:50%;background:${c.color};flex-shrink:0"></span>${c.name}
+    </button>`
+  ).join('');
+  document.getElementById('txnIncomeCat').value = selectedId ?? '';
+}
+
+function selectIncomeCatPill(id, el) {
+  document.getElementById('txnIncomeCat').value = id;
+  renderIncomeCatPills(id);
 }
 
 async function addTransaction() {
   const date   = document.getElementById('txnDate').value;
   const amount = parseFloat(document.getElementById('txnAmount').value.replace(',', '.'));
   const payee  = document.getElementById('txnPayee').value.trim();
-  const catId  = txnType === 'income' ? null : (parseInt(document.getElementById('txnCat').value) || null);
+  const catId       = txnType === 'income' ? null : (parseInt(document.getElementById('txnCat').value) || null);
+  const incomeCatId = txnType === 'income' ? (parseInt(document.getElementById('txnIncomeCat').value) || null) : null;
 
   if (!date || isNaN(amount) || amount <= 0 || !payee) {
     alert('Please fill in date, description, and a valid amount.');
@@ -1735,12 +1836,12 @@ async function addTransaction() {
   if (editingTxnId !== null) {
     const t = transactions.find(x => x.id === editingTxnId);
     if (t) {
-      t.date = date; t.payee = payee; t.catId = catId; t.type = txnType; t.amount = amount;
+      t.date = date; t.payee = payee; t.catId = catId; t.incomeCatId = incomeCatId; t.type = txnType; t.amount = amount;
       await saveTransaction(t);
     }
     editingTxnId = null;
   } else {
-    const newTxn = { id: nextId++, date, payee, catId, type: txnType, amount };
+    const newTxn = { id: nextId++, date, payee, catId, incomeCatId, type: txnType, amount };
     transactions.push(newTxn);
     await saveTransaction(newTxn);
     await dbSetMeta('nextId', nextId);
@@ -1831,6 +1932,45 @@ function renderSettings() {
   const savingsCats = categories.filter(c => c.isSavings);
   renderCatRows(spendCats,  'settingsTableBody');
   renderCatRows(savingsCats, 'savingsTableBody');
+  renderIncomeCatRows();
+}
+
+function renderIncomeCatRows() {
+  const tbody = document.getElementById('incomeTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (incomeCategories.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="4" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No income categories yet.</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+
+  incomeCategories.forEach((cat, i) => {
+    const bg = i % 2 === 0 ? '#FFFFFF' : '#FAFAF8';
+    const tr = document.createElement('tr');
+    tr.style.background = bg;
+    tr.innerHTML = `
+      <td style="padding:12px 8px 12px 16px; border-bottom:1px solid var(--border); color:var(--text-3); font-size:16px; user-select:none">⠿</td>
+      <td style="padding:12px 16px; border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:9px;font-weight:500">
+          <span class="cat-color-dot" style="background:${cat.color};flex-shrink:0"></span>
+          ${cat.name}
+        </div>
+      </td>
+      <td style="padding:12px 16px; border-bottom:1px solid var(--border); text-align:center; width:70px">
+        <span class="cat-color-dot" style="background:${cat.color}; width:18px; height:18px; border-radius:50%; display:inline-block; border:2px solid rgba(0,0,0,0.1)"></span>
+      </td>
+      <td style="padding:12px 16px; border-bottom:1px solid var(--border); width:80px">
+        <div class="action-cell">
+          <button class="icon-btn edit" onclick="openEditIncomeCat(${cat.id})" title="Edit">✎</button>
+          <button class="icon-btn" onclick="deleteIncomeCat(${cat.id})" title="Delete">✕</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 // ─── Drag & Drop ──────────────────────────────────────────────
@@ -2189,6 +2329,86 @@ function closeAllTime() { document.getElementById('allTimeOverlay').classList.re
 
 document.getElementById('allTimeOverlay').addEventListener('click', function(e) {
   if (e.target === this) closeAllTime();
+});
+
+// ─── Income Categories ───────────────────────────────────────────
+let editingIncomeCatId = null;
+
+function openAddIncomeCat() {
+  editingIncomeCatId = null;
+  document.getElementById('incomeCatModalTitle').textContent = 'New income category';
+  document.getElementById('incomeCatName').value = '';
+  buildIncomeCatColorPicker(PALETTE[nextIncomeCatId % PALETTE.length]);
+  document.getElementById('incomeCatModalOverlay').classList.add('open');
+}
+
+function openEditIncomeCat(id) {
+  const cat = incomeCategories.find(c => c.id === id);
+  if (!cat) return;
+  editingIncomeCatId = id;
+  document.getElementById('incomeCatModalTitle').textContent = 'Edit income category';
+  document.getElementById('incomeCatName').value = cat.name;
+  buildIncomeCatColorPicker(cat.color);
+  document.getElementById('incomeCatModalOverlay').classList.add('open');
+}
+
+function closeIncomeCatModal() {
+  document.getElementById('incomeCatModalOverlay').classList.remove('open');
+  editingIncomeCatId = null;
+}
+
+let selectedIncomeColor = PALETTE[0];
+
+function buildIncomeCatColorPicker(currentColor) {
+  const usedColors = new Set(incomeCategories.filter(c => c.color !== currentColor).map(c => c.color));
+  const el = document.getElementById('incomeCatColorPicker');
+  const available = PALETTE.filter(c => !usedColors.has(c));
+  const list = available.includes(currentColor) ? available : [currentColor, ...available];
+  el.innerHTML = list.map(c =>
+    `<div class="color-swatch ${c === currentColor ? 'selected' : ''}"
+      style="background:${c}"
+      onclick="selectIncomeColor('${c}', this)"></div>`
+  ).join('');
+  selectedIncomeColor = currentColor;
+}
+
+function selectIncomeColor(color, el) {
+  selectedIncomeColor = color;
+  document.querySelectorAll('#incomeCatColorPicker .color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+async function saveIncomeCat() {
+  const name = document.getElementById('incomeCatName').value.trim();
+  if (!name) { alert('Please enter a category name.'); return; }
+
+  if (editingIncomeCatId !== null) {
+    const cat = incomeCategories.find(c => c.id === editingIncomeCatId);
+    if (cat) { cat.name = name; cat.color = selectedIncomeColor; await dbPut('incomeCategories', cat); }
+  } else {
+    const newCat = { id: nextIncomeCatId++, name, color: selectedIncomeColor };
+    incomeCategories.push(newCat);
+    await dbPut('incomeCategories', newCat);
+    await dbSetMeta('nextIncomeCatId', nextIncomeCatId);
+  }
+
+  closeIncomeCatModal();
+  renderIncomeCatRows();
+  flashSaved();
+}
+
+async function deleteIncomeCat(id) {
+  const cat = incomeCategories.find(c => c.id === id);
+  if (!cat) return;
+  if (!confirm(`Delete "${cat.name}"?`)) return;
+  await dbDelete('incomeCategories', id);
+  incomeCategories = incomeCategories.filter(c => c.id !== id);
+  renderIncomeCatRows();
+  flashSaved();
+}
+
+document.getElementById('incomeCatModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeIncomeCatModal();
 });
 
 // ═══════════════════════════════════════════════════════════════════
