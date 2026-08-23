@@ -1378,7 +1378,10 @@ function renderBudget() {
 
   document.getElementById('totalIncome').textContent    = fmt(income);
   document.getElementById('totalSpent').textContent     = fmt(spent);
-  document.getElementById('totalRemaining').textContent = fmt(remain);
+  const remainEl = document.getElementById('totalRemaining');
+  const remainDisplay = Math.max(0, remain);
+  remainEl.textContent = fmt(remainDisplay);
+  remainEl.style.color = 'var(--accent)';
 
   const savingsCats = categories.filter(c => c.isSavings);
   const totalSaved  = savingsCats.reduce((s, c) => s + (spentMap[c.id] || 0), 0);
