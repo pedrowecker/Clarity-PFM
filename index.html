@@ -156,6 +156,7 @@
 
   /* ── Page header ── */
   .page-header { margin-bottom: 20px; }
+  .settings-block { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 14px; padding: 20px; }
   .page-title { font-size: 18px; font-weight: 600; letter-spacing: -0.4px; }
   .page-sub { font-size: 13px; color: var(--text-3); margin-top: 2px; }
 
@@ -209,6 +210,21 @@
     letter-spacing: 0.08em;
     border-bottom: 1px solid var(--border);
     background: var(--surface-2);
+  }
+  #view-settings .settings-block .cat-table {
+    background: transparent;
+    border: 0.5px solid var(--border);
+    box-shadow: none;
+  }
+  #view-settings .settings-block .cat-table thead th {
+    background: #EFEFEC;
+  }
+  #view-settings .settings-block #accountsTableBody tr,
+  #view-settings .settings-block #settingsTableBody tr,
+  #view-settings .settings-block #savingsTableBody tr,
+  #view-settings .settings-block #investmentTableBody tr,
+  #view-settings .settings-block #incomeTableBody tr {
+    background: #FFFFFF;
   }
   .cat-table thead th:not(:first-child) { text-align: right; }
   .cat-table tbody td { padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -286,8 +302,7 @@
     font-family: var(--font);
   }
   .type-btn:hover { background: rgba(0,0,0,0.04); }
-  .type-btn.active-exp { background: var(--red-light); color: var(--red); box-shadow: var(--shadow-sm); }
-  .type-btn.active-inc { background: var(--green-light); color: var(--green); box-shadow: var(--shadow-sm); }
+  .type-btn.active-exp, .type-btn.active-inc, .type-btn.active-inv { background: var(--text); color: #fff; box-shadow: var(--shadow-sm); }
 
   /* ── Transactions ── */
   .txn-filters { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; }
@@ -343,7 +358,8 @@
   .txn-date { color: var(--text-3); font-size: 13px; font-variant-numeric: tabular-nums; }
   .txn-amount { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; font-size: 14px; }
   .txn-amount.expense { color: var(--red); }
-  .txn-amount.income { color: var(--green); }
+  .txn-amount.income  { color: var(--green); }
+  .txn-amount.invest  { color: #2563EB; }
   .txn-amount.saving { color: #7C3AED; }
   .del-btn {
     background: none;
@@ -373,6 +389,10 @@
   .chart-title { font-size: 12px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
   .chart-wrap { position: relative; height: 220px; }
   .full-width { grid-column: 1 / -1; }
+  .bvr-chip { padding: 4px 13px; border-radius: 99px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border-strong); background: transparent; color: var(--text-2); font-family: var(--font); transition: background 0.12s, color 0.12s, border-color 0.12s; }
+  .bvr-chip:hover:not(:disabled) { border-color: var(--text-3); color: var(--text); }
+  .bvr-chip.active { background: #2563EB; border-color: #2563EB; color: #fff; }
+  .bvr-chip:disabled { opacity: 0.35; cursor: not-allowed; }
   .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
   .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-2); }
   .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
@@ -409,11 +429,10 @@
 
   /* ── Settings ── */
   .settings-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--surface-2);
+    border: 0.5px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
-    box-shadow: var(--shadow-sm);
   }
   .settings-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); }
   .settings-input {
@@ -472,10 +491,11 @@
       <button class="pill-btn" onclick="showView('transactions', this)">Transactions</button>
       <button class="pill-btn" onclick="showView('reports', this)">Dashboard</button>
     </nav>
-    <div class="topbar-center" id="topbarMonthNav">
+    <div class="topbar-center" id="topbarMonthNav" style="display:flex;align-items:center;gap:0;position:absolute;left:50%;transform:translateX(-50%)">
       <button class="month-btn" onclick="changeMonth(-1)">&#8249;</button>
-      <span class="month-label" id="monthLabel"></span>
+      <span class="month-label" id="monthLabel" style="min-width:130px;text-align:center"></span>
       <button class="month-btn" onclick="changeMonth(1)">&#8250;</button>
+      <button id="backToTodayBtn" onclick="goToCurrentMonth()" style="display:none;font-size:11px;padding:3px 10px;border-radius:99px;border:none;background:#2563EB;color:#fff;cursor:pointer;font-family:var(--font);white-space:nowrap;position:absolute;left:calc(100% + 8px)">↩ Current month</button>
     </div>
     <div class="topbar-right">
       <div id="todayBadge" style="font-size:12px;color:var(--text-3);padding:0 4px;white-space:nowrap"></div>
@@ -603,6 +623,10 @@
               <span class="fdd-check" id="chk-saving"></span>
               <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#7C3AED;margin-right:8px;flex-shrink:0"></span>Saving
             </div>
+            <div class="fdd-item" onclick="toggleTypeFilter('investment',this)">
+              <span class="fdd-check" id="chk-investment"></span>
+              <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#2563EB;margin-right:8px;flex-shrink:0"></span>Investment
+            </div>
           </div>
         </div>
 
@@ -616,18 +640,29 @@
           </button>
           <div class="filter-dropdown-menu" id="catDropMenu" style="display:none;max-height:320px;overflow-y:auto;min-width:180px"></div>
         </div>
+        <div style="position:relative" id="accDropWrap">
+          <button class="filter-dropdown-btn" id="accDropBtn" onclick="toggleDropdown('accDropMenu')">
+            <i class="ti ti-building-bank" aria-hidden="true"></i>
+            <span id="accDropLabel">Account</span>
+            <span id="accBadge" class="f-badge" style="display:none"></span>
+            <span class="f-caret">▾</span>
+          </button>
+          <div class="filter-dropdown-menu" id="accDropMenu" style="display:none;max-height:280px;overflow-y:auto;min-width:180px"></div>
+        </div>
         <button class="btn btn-primary" onclick="openAddTxn()" style="margin-left:auto">+ Add transaction</button>
       </div>
 
-      <!-- Active filter chips -->
-      <div id="activeFilterChips" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+      <!-- Active filter chips — fixed height so table never shifts -->
+      <div id="activeFilterChips" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-height:28px;margin-bottom:8px"></div>
 
       <table class="txn-table" style="width:100%">
         <thead>
           <tr>
             <th>Date</th>
             <th>Description</th>
+            <th>Type</th>
             <th>Category</th>
+            <th>Account</th>
             <th style="text-align:right">Amount</th>
             <th></th>
           </tr>
@@ -664,19 +699,24 @@
         </div>
       </div>
       <div class="charts-grid">
-        <div class="chart-card">
+        <div class="chart-card" style="grid-row:span 2;display:flex;flex-direction:column">
           <div class="chart-title">Total outflows</div>
-          <div style="display:flex;gap:20px;align-items:center">
+          <div style="flex:1;display:flex;flex-direction:column;gap:20px;align-items:center;justify-content:center">
             <div class="chart-wrap" style="width:180px;height:180px;flex-shrink:0"><canvas id="doughnutChart"></canvas></div>
-            <div id="doughnutLegend" style="flex:1;display:flex;flex-direction:column;gap:7px;min-width:0"></div>
+            <div id="doughnutLegend" style="display:flex;flex-direction:column;gap:7px;min-width:0;width:100%;padding:0 8px"></div>
           </div>
         </div>
         <div class="chart-card">
           <div class="chart-title">Income by source</div>
           <div id="incomeLegend" style="display:flex;flex-direction:column;gap:0;min-width:0"></div>
         </div>
+        <div class="chart-card">
+          <div class="chart-title">Balance by account</div>
+          <div id="accountBalanceLegend" style="display:flex;flex-direction:column;gap:0;min-width:0"></div>
+        </div>
         <div class="chart-card full-width">
           <div class="chart-title">Budgeted vs. real</div>
+          <div id="bvrChips" style="display:flex;gap:6px;justify-content:center;margin:10px 0 14px"></div>
           <div class="chart-wrap"><canvas id="barChart"></canvas></div>
         </div>
         <div class="chart-card full-width">
@@ -686,126 +726,128 @@
       </div>
     </div>
 
-    <!-- Budget Settings -->
+    <!-- Clarity Settings -->
     <div class="view" id="view-settings">
       <div class="page-header">
-        <div class="page-title">Budget settings</div>
-        <div class="page-sub">Define how much to allocate to each category.</div>
+        <div class="page-title">Clarity Settings</div>
+        <div class="page-sub">Accounts, budgets and data.</div>
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:0;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px">
-          <button class="month-btn" onclick="changeSettingsMonth(-1)" style="background:transparent;border:none">&#8249;</button>
-          <span id="settingsMonthLabel" class="month-label"></span>
-          <button class="month-btn" onclick="changeSettingsMonth(1)" style="background:transparent;border:none">&#8250;</button>
+      <!-- ── BLOCK 1: Accounts ── -->
+      <div class="settings-block" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <div style="font-size:14px;font-weight:500;color:var(--text)">Accounts</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px">Setup your bank accounts</div>
+          </div>
+          <button class="btn btn-primary" onclick="openAddAccount()">+ New account</button>
         </div>
-        <button class="btn btn-outline" id="usePastMonthBtn" onclick="usePastMonthSetup()" style="font-size:12px">↙ Use past month setup</button>
-      </div>
-
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span class="section-title">Spending Categories</span>
-        <button class="btn btn-primary" onclick="openAddCat(false)">+ New category</button>
-      </div>
-      <div class="settings-card">
         <table class="cat-table" style="width:100%">
-          <colgroup>
-            <col style="width:36px">
-            <col>
-            <col style="width:160px">
-            <col style="width:70px">
-            <col style="width:80px">
-          </colgroup>
-          <thead>
+          <thead style="background:#EFEFEC">
             <tr>
-              <th></th>
-              <th style="text-align:left;padding-left:16px">Category</th>
-              <th style="text-align:right;padding-right:16px">Monthly budget (€)</th>
-              <th style="text-align:center">Colour</th>
-              <th style="text-align:center">Action</th>
+              <th style="width:32px"></th>
+              <th style="text-align:left;padding-left:16px">Name</th>
+              <th style="text-align:left">Bank</th>
+              <th style="text-align:left">Type</th>
+              <th style="text-align:center;width:80px">Action</th>
             </tr>
           </thead>
+          <tbody id="accountsTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- ── BLOCK 2: Budget settings ── -->
+      <div class="settings-block" style="margin-bottom:12px">
+        <div style="margin-bottom:20px">
+          <div style="margin-bottom:14px">
+            <div style="font-size:14px;font-weight:500;color:var(--text)">Budget settings</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px">Categories and budgets per month</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:flex-start;gap:8px">
+            <div style="display:flex;align-items:center;gap:0;background:#FFFFFF;border:0.5px solid var(--border);border-radius:8px;padding:3px">
+              <button class="month-btn" onclick="changeSettingsMonth(-1)" style="background:transparent;border:none">&#8249;</button>
+              <span id="settingsMonthLabel" class="month-label"></span>
+              <button class="month-btn" onclick="changeSettingsMonth(1)" style="background:transparent;border:none">&#8250;</button>
+            </div>
+            <button id="usePastMonthBtn" onclick="usePastMonthSetup()" style="font-size:11px;padding:3px 10px;border-radius:99px;border:1px solid var(--border-strong);background:#fff;color:var(--text-2);cursor:pointer;font-family:var(--font);white-space:nowrap">↙ Use past month categories</button>
+          </div>
+        </div>
+
+        <!-- Spending -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;font-weight:400;color:var(--text)">Spending categories</span>
+          <button class="btn btn-primary" onclick="openAddCat(false)">+ New category</button>
+        </div>
+        <table class="cat-table" style="width:100%">
+          <colgroup><col style="width:36px"><col><col style="width:160px"><col style="width:70px"><col style="width:80px"></colgroup>
+          <thead><tr><th></th><th style="text-align:left;padding-left:16px">Category</th><th style="text-align:right;padding-right:16px;white-space:nowrap">Budget (€)</th><th style="text-align:center">Colour</th><th style="text-align:center">Action</th></tr></thead>
           <tbody id="settingsTableBody"></tbody>
         </table>
-      </div>
 
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:28px;margin-bottom:12px">
-        <span class="section-title">Savings Categories</span>
-        <button class="btn btn-primary" onclick="openAddCat(true)">+ New category</button>
-      </div>
-      <div class="settings-card">
+        <div style="margin:20px 0"></div>
+
+        <!-- Savings -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;font-weight:400;color:var(--text)">Savings categories</span>
+          <button class="btn btn-primary" onclick="openAddCat(true)">+ New category</button>
+        </div>
         <table class="cat-table" style="width:100%">
-          <colgroup>
-            <col style="width:36px">
-            <col>
-            <col style="width:160px">
-            <col style="width:70px">
-            <col style="width:80px">
-          </colgroup>
-          <thead>
-            <tr>
-              <th></th>
-              <th style="text-align:left;padding-left:16px">Category</th>
-              <th style="text-align:right;padding-right:16px">Monthly goal (€)</th>
-              <th style="text-align:center">Colour</th>
-              <th style="text-align:center">Action</th>
-            </tr>
-          </thead>
+          <colgroup><col style="width:36px"><col><col style="width:160px"><col style="width:70px"><col style="width:80px"></colgroup>
+          <thead><tr><th></th><th style="text-align:left;padding-left:16px">Category</th><th style="text-align:right;padding-right:16px;white-space:nowrap">Budget (€)</th><th style="text-align:center">Colour</th><th style="text-align:center">Action</th></tr></thead>
           <tbody id="savingsTableBody"></tbody>
         </table>
-      </div>
 
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:28px;margin-bottom:12px">
-        <span class="section-title">Income Categories</span>
-        <button class="btn btn-primary" onclick="openAddIncomeCat()">+ New category</button>
-      </div>
-      <div class="settings-card">
+        <div style="margin:20px 0"></div>
+
+        <!-- Investment categories -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;font-weight:400;color:var(--text)">Investment categories</span>
+          <button class="btn btn-primary" onclick="openAddInvestmentCat()">+ New category</button>
+        </div>
         <table class="cat-table" style="width:100%">
-          <colgroup>
-            <col style="width:36px">
-            <col>
-            <col style="width:70px">
-            <col style="width:80px">
-          </colgroup>
-          <thead>
-            <tr>
-              <th></th>
-              <th style="text-align:left;padding-left:16px">Category</th>
-              <th style="text-align:center">Colour</th>
-              <th style="text-align:center">Action</th>
-            </tr>
-          </thead>
+          <colgroup><col style="width:36px"><col><col style="width:160px"><col style="width:70px"><col style="width:80px"></colgroup>
+          <thead><tr><th></th><th style="text-align:left;padding-left:16px">Category</th><th style="text-align:right;padding-right:16px;white-space:nowrap">Budget (€)</th><th style="text-align:center">Colour</th><th style="text-align:center">Action</th></tr></thead>
+          <tbody id="investmentTableBody"></tbody>
+        </table>
+
+        <div style="margin:20px 0"></div>
+
+        <!-- Income -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;font-weight:400;color:var(--text)">Income categories</span>
+          <button class="btn btn-primary" onclick="openAddIncomeCat()">+ New category</button>
+        </div>
+        <table class="cat-table" style="width:100%">
+          <colgroup><col style="width:36px"><col><col style="width:70px"><col style="width:80px"></colgroup>
+          <thead><tr><th></th><th style="text-align:left;padding-left:16px">Category</th><th style="text-align:center">Colour</th><th style="text-align:center">Action</th></tr></thead>
           <tbody id="incomeTableBody"></tbody>
         </table>
       </div>
 
-      <!-- Advanced Settings (collapsed) -->
-      <div style="margin-top:20px">
+      <!-- ── BLOCK 3: Advanced settings (expandable) ── -->
+      <div class="settings-block">
         <button onclick="toggleAdvanced()" id="advancedToggleBtn"
-          style="display:flex;align-items:center;gap:7px;background:none;border:none;cursor:pointer;font-family:var(--font);font-size:13px;color:var(--text-3);padding:0;font-weight:500;letter-spacing:0.01em">
-          <span id="advancedChevron" style="font-size:11px;transition:transform 0.2s">▶</span>
-          Advanced settings
-        </button>
-        <div id="advancedPanel" style="display:none;margin-top:12px">
-          <div class="settings-card">
-            <div class="settings-header">
-              <div>
-                <span class="section-title">Export data</span>
-                <div style="font-size:12px;color:var(--text-3);margin-top:2px">Transactions + category summary · all months</div>
-              </div>
-              <button class="btn btn-outline" onclick="exportToExcel()" style="display:flex;align-items:center;gap:6px">
-                <span>↓</span> Export to Excel
-              </button>
-            </div>
-            <div style="padding:14px 16px;font-size:13px;color:var(--text-2);border-top:1px solid var(--border)">
-              Exports two sheets: <strong>Transactions</strong> (date, description, category, type, amount) and <strong>Summary</strong> (monthly totals per category).
-            </div>
+          style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;font-family:var(--font);padding:0">
+          <div>
+            <div style="font-size:14px;font-weight:500;color:var(--text);text-align:left">Advanced settings</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px;text-align:left">Export, backup and restore</div>
           </div>
-
-          <div class="settings-card" style="margin-top:16px">
-            <div class="settings-header">
+          <span id="advancedChevron" style="font-size:13px;color:var(--text-3);transition:transform 0.2s">▼</span>
+        </button>
+        <div id="advancedPanel" style="display:none;margin-top:20px">
+          <div style="border-top:0.5px solid var(--border);padding-top:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--border)">
               <div>
-                <span class="section-title">Backup &amp; Restore</span>
-                <div style="font-size:12px;color:var(--text-3);margin-top:2px">Data is stored locally in your browser. Back up regularly.</div>
+                <div style="font-size:13px;color:var(--text)">Export to Excel</div>
+                <div style="font-size:11px;color:var(--text-3);margin-top:2px">Transactions + summary · all months</div>
+              </div>
+              <button class="btn btn-outline" onclick="exportToExcel()" style="display:flex;align-items:center;gap:6px"><span>↓</span> Export to Excel</button>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
+              <div>
+                <div style="font-size:13px;color:var(--text)">Backup and restore</div>
+                <div style="font-size:11px;color:var(--text-3);margin-top:2px">Data is stored locally in your browser.</div>
+                <span id="dbInfo" style="display:block;margin-top:4px;font-size:11px;color:var(--text-3)"></span>
               </div>
               <div style="display:flex;gap:8px">
                 <button class="btn btn-outline" onclick="exportBackupJSON()" style="display:flex;align-items:center;gap:6px"><span>↓</span> Backup</button>
@@ -814,10 +856,6 @@
                   <input type="file" accept=".json" onchange="importBackupJSON(this)" style="display:none">
                 </label>
               </div>
-            </div>
-            <div style="padding:14px 16px;font-size:13px;color:var(--text-2);border-top:1px solid var(--border)">
-              The JSON backup contains all your transactions and categories. To restore on another device, import the JSON file.
-              <span id="dbInfo" style="display:block;margin-top:6px;font-size:12px;color:var(--text-3)"></span>
             </div>
           </div>
         </div>
@@ -877,6 +915,7 @@
         <button class="type-btn active-exp" id="typeExp" onclick="setType('expense')">Expense</button>
         <button class="type-btn" id="typeInc" onclick="setType('income')">Income</button>
         <button class="type-btn" id="typeSav" onclick="setType('saving')">Saving</button>
+        <button class="type-btn" id="typeInv" onclick="setType('investment')">Investment</button>
       </div>
     </div>
 
@@ -916,10 +955,28 @@
       <div id="txnIncomeCatPills" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;"></div>
       <input type="hidden" id="txnIncomeCat">
     </div>
+    <div class="form-row" id="savingSubRow" style="display:none;margin-bottom:12px">
+      <div style="display:flex;gap:6px">
+        <button type="button" id="savSubAdd" onclick="setSavingDirection('add')" class="btn btn-outline" style="flex:1;font-size:12px">↓ Add funds</button>
+        <button type="button" id="savSubWithdraw" onclick="setSavingDirection('withdraw')" class="btn btn-outline" style="flex:1;font-size:12px">↑ Withdraw</button>
+      </div>
+      <input type="hidden" id="txnSavingDirection" value="add">
+    </div>
     <div class="form-row" id="savingCatRow" style="display:none">
       <label class="form-label">Savings category</label>
       <div id="txnSavingCatPills" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;"></div>
       <input type="hidden" id="txnSavingCat">
+    </div>
+    <div class="form-row" id="investmentCatRow" style="display:none">
+      <label class="form-label">Investment category</label>
+      <div id="txnInvestmentCatPills" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;"></div>
+      <input type="hidden" id="txnInvestmentCat">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Account</label>
+      <div id="txnAccountPills" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;"></div>
+      <input type="hidden" id="txnAccount">
+      <div id="txnAccountErr" style="display:none;font-size:12px;color:var(--red);margin-top:4px">* Mandatory field</div>
     </div>
 
     <div class="modal-actions" style="margin-top:24px;">
@@ -932,6 +989,28 @@
 
 
 <!-- Modal: All time -->
+<div class="modal-overlay" id="investmentCatModalOverlay">
+  <div class="modal">
+    <div class="modal-title" id="investmentCatModalTitle">New investment category</div>
+    <div class="form-row">
+      <label class="form-label">Name</label>
+      <input class="form-input" type="text" id="investmentCatName" placeholder="e.g. ETFs, Stocks...">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Budget (€)</label>
+      <input class="form-input" type="number" id="investmentCatBudget" placeholder="0" min="0" step="1">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Colour</label>
+      <div class="color-picker" id="investmentCatColorPicker"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeInvestmentCatModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInvestmentCat()" id="investmentCatSaveBtn">Save category</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="incomeCatModalOverlay">
   <div class="modal">
     <div class="modal-title" id="incomeCatModalTitle">New income category</div>
@@ -985,6 +1064,39 @@
   </div>
 </div>
 
+<!-- Account Modal -->
+<div class="modal-overlay" id="accountModalOverlay">
+  <div class="modal" style="width:837px">
+    <div class="modal-title" id="accountModalTitle">New account</div>
+    <div class="form-row">
+      <label class="form-label">Name</label>
+      <input class="form-input" type="text" id="accountName" placeholder="e.g. Conta Corrente">
+      <div class="field-error" id="accountNameErr" style="display:none;font-size:12px;color:var(--red);margin-top:4px">* Mandatory field</div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Bank</label>
+      <input class="form-input" type="text" id="accountBankSearch" placeholder="Search bank..." oninput="renderBankGrid()">
+      <div id="bankGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px"></div>
+      <input type="hidden" id="accountBankId">
+      <div class="field-error" id="accountBankErr" style="display:none;font-size:12px;color:var(--red);margin-top:4px">* Mandatory field</div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Type</label>
+      <div style="display:flex;gap:6px">
+        <button type="button" id="accTypeChecking" onclick="selectAccountType('checking')" class="btn btn-outline" style="flex:1;font-size:12px">Checking</button>
+        <button type="button" id="accTypeSavings" onclick="selectAccountType('savings')" class="btn btn-outline" style="flex:1;font-size:12px">Savings</button>
+        <button type="button" id="accTypeInvestment" onclick="selectAccountType('investment')" class="btn btn-outline" style="flex:1;font-size:12px">Investment</button>
+      </div>
+      <div class="field-error" id="accountTypeErr" style="display:none;font-size:12px;color:var(--red);margin-top:4px">* Mandatory field</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAccountModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAccountModal()">Save account</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="restoreModalOverlay">
   <div class="modal">
     <div class="modal-title">Restore backup</div>
@@ -1020,29 +1132,64 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="accDetailModalOverlay">
+  <div class="modal" style="width:860px;max-height:90vh;overflow-y:auto;padding:32px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <div id="accDetailLogo" style="width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#fff;flex-shrink:0"></div>
+      <div>
+        <div class="modal-title" id="accDetailTitle" style="margin-bottom:2px"></div>
+        <div style="font-size:12px;color:var(--text-3)" id="accDetailSub"></div>
+      </div>
+      <button onclick="closeAccDetail()" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-3)">✕</button>
+    </div>
+    <div id="accDetailContent"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteAccModalOverlay">
+  <div class="modal" style="max-width:440px;min-height:200px;display:flex;flex-direction:column;padding:28px">
+    <div style="margin-bottom:16px">
+      <span class="modal-title" id="deleteAccModalTitle">Delete account</span>
+    </div>
+    <div style="flex:1">
+      <p id="deleteAccModalMsg" style="font-size:14px;color:var(--text-2);margin:0;line-height:1.8"></p>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:32px">
+      <button class="btn btn-outline" onclick="closeDeleteAccModal()">Cancel</button>
+      <button class="btn" style="background:#DC2626;color:#fff;border:none" onclick="confirmDeleteAcc()">Delete</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="allTimeOverlay">
-  <div class="modal" style="width:640px; max-height:85vh; overflow-y:auto;">
+  <div class="modal" style="width:858px; max-height:85vh; overflow-y:auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
       <div class="modal-title" style="margin-bottom:0">🌐 All time overview</div>
       <button class="icon-btn" onclick="closeAllTime()" style="font-size:18px; color:var(--text-2)">✕</button>
     </div>
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px;">
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; margin-bottom:24px;">
       <div class="sum-card" style="padding:14px 16px;">
         <div class="sum-label">Total income</div>
-        <div class="sum-val green" id="at-income" style="font-size:20px">€0</div>
+        <div class="sum-val green" id="at-income" style="font-size:18px">€0</div>
       </div>
       <div class="sum-card" style="padding:14px 16px;">
         <div class="sum-label">Total spent</div>
-        <div class="sum-val red" id="at-spent" style="font-size:20px">€0</div>
+        <div class="sum-val red" id="at-spent" style="font-size:18px">€0</div>
       </div>
       <div class="sum-card" style="padding:14px 16px;">
-        <div class="sum-label">Net saved</div>
-        <div class="sum-val accent" id="at-saved" style="font-size:20px">€0</div>
+        <div class="sum-label">Total saved</div>
+        <div class="sum-val" id="at-saved" style="font-size:18px;color:#7C3AED">€0</div>
+      </div>
+      <div class="sum-card" style="padding:14px 16px;">
+        <div class="sum-label">Total invested</div>
+        <div class="sum-val" id="at-invested" style="font-size:18px;color:#2563EB">€0</div>
       </div>
     </div>
-    <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-3); margin-bottom:10px;">Spending by category — all time</div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-3);margin-bottom:10px;">Spending by category — all time</div>
     <table style="width:100%; border-collapse:collapse;" id="at-cat-table"></table>
-    <div style="margin-top:20px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-3); margin-bottom:10px;">Monthly breakdown</div>
+    <div style="margin-top:24px; font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-3);margin-bottom:10px;">Yearly breakdown</div>
+    <table style="width:100%; border-collapse:collapse;" id="at-year-table"></table>
+    <div style="margin-top:24px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-3); margin-bottom:10px;">Monthly breakdown</div>
     <table style="width:100%; border-collapse:collapse;" id="at-month-table"></table>
   </div>
 </div>
@@ -1059,6 +1206,7 @@ let currentMonth = new Date().getMonth();
 let currentYear  = new Date().getFullYear();
 let txnType = 'expense';
 let charts  = {};
+let bvrFilter = 'all';
 
 // ── Estado em memória (carregado do IndexedDB ao arrancar) ──
 let categories = [];
@@ -1080,6 +1228,14 @@ const DEFAULT_INCOME_CATEGORIES = [
 let incomeCategories = [];
 let nextIncomeCatId = 108;
 
+// Settings-specific category arrays (independent from budget view)
+let settingsCategories = [];
+let settingsIncomeCategories = [];
+
+// Accounts (global, not per-month)
+let accounts = [];
+let nextAccountId = 1;
+
 const DEFAULT_CATEGORIES = [
   { id: 1, name: 'Housing',       color: COLORS[0], budgeted: 900  },
   { id: 2, name: 'Groceries',     color: COLORS[1], budgeted: 400  },
@@ -1096,7 +1252,7 @@ const DEFAULT_CATEGORIES = [
 // ═══════════════════════════════════════════════════════════════════
 
 const DB_NAME    = 'ClarityPFM';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 let db = null;
 
 // Settings month (independent from current budget month)
@@ -1137,6 +1293,9 @@ function openDB() {
       }
       if (!d.objectStoreNames.contains('monthlyIncomeCategories')) {
         d.createObjectStore('monthlyIncomeCategories', { keyPath: 'monthKey' });
+      }
+      if (!d.objectStoreNames.contains('accounts')) {
+        d.createObjectStore('accounts', { keyPath: 'id' });
       }
     };
 
@@ -1207,35 +1366,75 @@ async function removeTransaction(id) {
 }
 
 async function saveCategory(cat) {
-  // Update in-memory array
-  const idx = categories.findIndex(c => c.id === cat.id);
-  if (idx > -1) categories[idx] = cat; else categories.push(cat);
-  await saveMonthCategories(currentSettingsKey(), categories);
+  const idx = settingsCategories.findIndex(c => c.id === cat.id);
+  if (idx > -1) settingsCategories[idx] = cat; else settingsCategories.push(cat);
+  await saveMonthCategories(currentSettingsKey(), settingsCategories);
   await dbSetMeta('nextCatId', nextCatId);
+  // Sync to budget arrays if settings month matches budget month
+  if (settingsMonth === currentMonth && settingsYear === currentYear) {
+    categories = [...settingsCategories];
+  }
 }
 
 async function saveIncomeCategory(cat) {
-  const idx = incomeCategories.findIndex(c => c.id === cat.id);
-  if (idx > -1) incomeCategories[idx] = cat; else incomeCategories.push(cat);
-  await saveMonthIncomeCategories(currentSettingsKey(), incomeCategories);
+  const idx = settingsIncomeCategories.findIndex(c => c.id === cat.id);
+  if (idx > -1) settingsIncomeCategories[idx] = cat; else settingsIncomeCategories.push(cat);
+  await saveMonthIncomeCategories(currentSettingsKey(), settingsIncomeCategories);
   await dbSetMeta('nextIncomeCatId', nextIncomeCatId);
 }
 
 async function removeCategory(id) {
-  categories = categories.filter(c => c.id !== id);
-  await saveMonthCategories(currentSettingsKey(), categories);
-  // Update any transactions that used this category
+  settingsCategories = settingsCategories.filter(c => c.id !== id);
+  await saveMonthCategories(currentSettingsKey(), settingsCategories);
+  if (settingsMonth === currentMonth && settingsYear === currentYear) {
+    categories = [...settingsCategories];
+  }
   for (const t of transactions) {
-    if (t.catId === id) {
-      t.catId = null;
-      await dbPut('transactions', t);
-    }
+    if (t.catId === id) { t.catId = null; await dbPut('transactions', t); }
   }
 }
 
 async function saveMeta() {
   await dbSetMeta('nextId', nextId);
   await dbSetMeta('nextCatId', nextCatId);
+}
+
+const BANKS = [
+  { id:'CGD',  name:'Caixa Geral de Depósitos', short:'CGD',  color:'#0072C6' },
+  { id:'BCP',  name:'Millennium BCP',            short:'BCP',  color:'#9B0068' },
+  { id:'NB',   name:'Novo Banco',                short:'NB',   color:'#009F98' },
+  { id:'SAN',  name:'Santander',                 short:'SAN',  color:'#EC0000' },
+  { id:'BPI',  name:'Banco BPI',                 short:'BPI',  color:'#003DA5' },
+  { id:'MTP',  name:'Montepio',                  short:'MTP',  color:'#FFD100', textColor:'#1a1a1a' },
+  { id:'CTT',  name:'Banco CTT',                 short:'CTT',  color:'#E30613' },
+  { id:'CA',   name:'Crédito Agrícola',           short:'CA',   color:'#007A33' },
+  { id:'BKT',  name:'Bankinter',                 short:'BKT',  color:'#FF6600' },
+  { id:'ABA',  name:'Abanca',                    short:'ABA',  color:'#5B87DA' },
+  { id:'AB',   name:'ActivoBank',                short:'AB',   color:'#29ABE2' },
+  { id:'REV',  name:'Revolut',                   short:'REV',  color:'#191C1F' },
+  { id:'DEG',  name:'DEGIRO',                    short:'DEG',  color:'#009FDF' },
+  { id:'T212', name:'Trading 212',               short:'T212', color:'#1A7F5A' },
+  { id:'TR',   name:'Trade Republic',            short:'TR',   color:'#000000' },
+];
+
+function bankLogo(bankId, size=28) {
+  const b = BANKS.find(x => x.id === bankId) || { short: bankId, color: '#888', textColor: '#fff' };
+  const tc = b.textColor || '#fff';
+  return `<div style="width:${size}px;height:${size}px;border-radius:${Math.round(size*0.22)}px;background:${b.color};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.3)}px;font-weight:500;color:${tc};flex-shrink:0;letter-spacing:-0.3px">${b.short}</div>`;
+}
+
+async function saveAccount(acc) {
+  const idx = accounts.findIndex(a => a.id === acc.id);
+  if (idx > -1) accounts[idx] = acc; else accounts.push(acc);
+  await dbPut('accounts', acc);
+  await dbSetMeta('nextAccountId', nextAccountId);
+  flashSaved();
+}
+
+async function deleteAccount(id) {
+  accounts = accounts.filter(a => a.id !== id);
+  await dbDelete('accounts', id);
+  flashSaved();
 }
 
 // ── Monthly categories helpers ────────────────────────────────────
@@ -1276,15 +1475,14 @@ async function switchSettingsMonth(m, y) {
   settingsYear  = y;
   const key = currentSettingsKey();
 
-  // Load categories for this month
+  // Load into settings-specific arrays — does NOT affect budget view
   const storedCats = await loadMonthCategories(key);
   const storedIncomeCats = await loadMonthIncomeCategories(key);
-  categories       = storedCats       !== null ? storedCats       : [];
-  incomeCategories = storedIncomeCats !== null ? storedIncomeCats : [];
+  settingsCategories       = storedCats       !== null ? storedCats       : [];
+  settingsIncomeCategories = storedIncomeCats !== null ? storedIncomeCats : [];
 
   updateSettingsMonthLabel();
   renderSettings();
-  render();
 }
 
 function updateSettingsMonthLabel() {
@@ -1341,13 +1539,13 @@ async function confirmPastMonthSetup() {
 
   // Deep copy with new IDs to avoid conflicts
   if (pastCats) {
-    categories = pastCats.map(c => ({ ...c, id: nextCatId++ }));
-    await saveMonthCategories(currentSettingsKey(), categories);
+    settingsCategories = pastCats.map(c => ({ ...c, id: nextCatId++ }));
+    await saveMonthCategories(currentSettingsKey(), settingsCategories);
     await dbSetMeta('nextCatId', nextCatId);
   }
   if (pastIncomeCats) {
-    incomeCategories = pastIncomeCats.map(c => ({ ...c, id: nextIncomeCatId++ }));
-    await saveMonthIncomeCategories(currentSettingsKey(), incomeCategories);
+    settingsIncomeCategories = pastIncomeCats.map(c => ({ ...c, id: nextIncomeCatId++ }));
+    await saveMonthIncomeCategories(currentSettingsKey(), settingsIncomeCategories);
     await dbSetMeta('nextIncomeCatId', nextIncomeCatId);
   }
 
@@ -1422,6 +1620,10 @@ async function initApp() {
     const storedNextIncomeCatId = await dbGetMeta('nextIncomeCatId');
     if (storedNextIncomeCatId !== null) nextIncomeCatId = storedNextIncomeCatId;
 
+    // Load investment categories
+    const storedInvCats = await dbGetMeta('investmentCategories');
+    investmentCategories = storedInvCats !== null ? storedInvCats : [];
+
     // Carrega transações
     transactions = await dbGetAll('transactions');
 
@@ -1448,9 +1650,16 @@ async function initApp() {
     const label = document.getElementById('autosaveLabel');
     if (label) label.textContent = 'Autosave on';
 
+    // Load accounts
+    const storedAccounts = await dbGetAll('accounts');
+    accounts = storedAccounts || [];
+    const storedNextAccountId = await dbGetMeta('nextAccountId');
+    if (storedNextAccountId !== null) nextAccountId = storedNextAccountId;
+
     updateDbInfo();
     updateSettingsMonthLabel();
     render();
+    renderSettings();
     updateTodayLabel();
 
   } catch (err) {
@@ -1592,7 +1801,8 @@ function monthlyTxns() {
 function spentByCategory() {
   const map = {};
   monthlyTxns().filter(t => (t.type === 'expense' || t.type === 'saving') && t.catId).forEach(t => {
-    map[t.catId] = (map[t.catId] || 0) + t.amount;
+    const delta = (t.type === 'saving' && t.savingDir === 'withdraw') ? -t.amount : t.amount;
+    map[t.catId] = (map[t.catId] || 0) + delta;
   });
   return map;
 }
@@ -1610,8 +1820,14 @@ function showView(id, el) {
   const topbarNav = document.getElementById('topbarMonthNav');
   if (topbarNav) topbarNav.style.visibility = id === 'settings' ? 'hidden' : '';
   if (id === 'budget') renderBudget();
+  if (id === 'transactions') { renderCatFilter(); renderAccFilter(); renderTxns(); }
   if (id === 'reports') renderReports();
-  if (id === 'settings') { updateSettingsMonthLabel(); renderSettings(); updateDbInfo(); }
+  if (id === 'settings') {
+    // Always reset settings month to current real month when entering settings
+    settingsMonth = new Date().getMonth();
+    settingsYear  = new Date().getFullYear();
+    switchSettingsMonth(settingsMonth, settingsYear);
+  }
 }
 
 async function changeMonth(dir) {
@@ -1626,6 +1842,29 @@ async function changeMonth(dir) {
   categories       = monthCats       !== null ? monthCats       : [];
   incomeCategories = monthIncomeCats !== null ? monthIncomeCats : [];
 
+  updateBackToTodayBtn();
+  render();
+  if (document.getElementById('view-reports').classList.contains('active')) renderReports();
+}
+
+function updateBackToTodayBtn() {
+  const btn = document.getElementById('backToTodayBtn');
+  if (!btn) return;
+  const now = new Date();
+  const isCurrentMonth = currentMonth === now.getMonth() && currentYear === now.getFullYear();
+  btn.style.display = isCurrentMonth ? 'none' : '';
+}
+
+async function goToCurrentMonth() {
+  const now = new Date();
+  currentMonth = now.getMonth();
+  currentYear  = now.getFullYear();
+  const key = settingsMonthKey(currentMonth, currentYear);
+  const monthCats = await loadMonthCategories(key);
+  const monthIncomeCats = await loadMonthIncomeCategories(key);
+  categories       = monthCats       !== null ? monthCats       : [];
+  incomeCategories = monthIncomeCats !== null ? monthIncomeCats : [];
+  updateBackToTodayBtn();
   render();
   if (document.getElementById('view-reports').classList.contains('active')) renderReports();
 }
@@ -1640,6 +1879,84 @@ function render() {
   renderBudget();
   renderTxns();
   renderCatFilter();
+  renderAccFilter();
+}
+
+function renderBvrChips() {
+  const wrap = document.getElementById('bvrChips');
+  if (!wrap) return;
+  const hasSpend = categories.some(c => !c.isSavings);
+  const hasSaving = categories.some(c => c.isSavings);
+  const hasInvest = investmentCategories.length > 0;
+  const chips = [
+    { key: 'all',        label: 'All',        enabled: true },
+    { key: 'spending',   label: 'Spending',   enabled: hasSpend },
+    { key: 'saving',     label: 'Saving',     enabled: hasSaving },
+    { key: 'investment', label: 'Investment', enabled: hasInvest },
+  ];
+  // Ensure active filter is still valid
+  const activeChip = chips.find(c => c.key === bvrFilter);
+  if (!activeChip || !activeChip.enabled) bvrFilter = 'all';
+  wrap.innerHTML = chips.map(c => `
+    <button class="bvr-chip${bvrFilter === c.key ? ' active' : ''}"
+      ${c.enabled ? '' : 'disabled'}
+      onclick="bvrFilter='${c.key}';renderBvrChips();renderBarChart()">${c.label}</button>
+  `).join('');
+}
+
+function renderBarChart() {
+  const txns = monthlyTxns();
+  const spentMap = {};
+  txns.filter(t => (t.type === 'expense' || t.type === 'saving') && t.catId).forEach(t => {
+    spentMap[t.catId] = (spentMap[t.catId] || 0) + t.amount;
+  });
+  const investSpentMap = {};
+  txns.filter(t => t.type === 'investment' && t.catId).forEach(t => {
+    investSpentMap[t.catId] = (investSpentMap[t.catId] || 0) + t.amount;
+  });
+
+  let orderedCats, labels, budgetedData, spentData, spentColors;
+
+  if (bvrFilter === 'investment') {
+    orderedCats = investmentCategories;
+    labels      = orderedCats.map(c => c.name);
+    budgetedData = orderedCats.map(() => 0);
+    spentData    = orderedCats.map(c => investSpentMap[c.id] || 0);
+    spentColors  = orderedCats.map(c => c.color);
+  } else {
+    const spendCats  = categories.filter(c => !c.isSavings);
+    const savingCats = categories.filter(c =>  c.isSavings);
+    if (bvrFilter === 'spending')   orderedCats = spendCats;
+    else if (bvrFilter === 'saving') orderedCats = savingCats;
+    else orderedCats = [...spendCats, ...savingCats];
+    labels       = orderedCats.map(c => c.name);
+    budgetedData = orderedCats.map(c => c.budgeted);
+    spentData    = orderedCats.map(c => spentMap[c.id] || 0);
+    spentColors  = orderedCats.map(c => c.color);
+  }
+
+  if (charts.bar) charts.bar.destroy();
+  charts.bar = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Budgeted', data: budgetedData, backgroundColor: '#E8E6E0', borderRadius: 4, barPercentage: 0.6 },
+        { label: 'Spent',    data: spentData,    backgroundColor: spentColors, borderRadius: 4, barPercentage: 0.6 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10, padding: 12 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: '#F0EEE8' }, ticks: { callback: v => v + '€', font: { size: 10 } } }
+      }
+    }
+  });
 }
 
 function renderBudget() {
@@ -1647,21 +1964,23 @@ function renderBudget() {
   const savingsCatIds = new Set(categories.filter(c => c.isSavings).map(c => c.id));
   const income = txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const spent  = txns.filter(t => t.type === 'expense' && !savingsCatIds.has(t.catId)).reduce((s, t) => s + t.amount, 0);
-  const saved  = txns.filter(t => (t.type === 'saving') || (t.type === 'expense' && savingsCatIds.has(t.catId))).reduce((s, t) => s + t.amount, 0);
+  const saved  = txns.filter(t => (t.type === 'saving') || (t.type === 'expense' && savingsCatIds.has(t.catId))).reduce((s, t) => s + ((t.type === 'saving' && t.savingDir === 'withdraw') ? -t.amount : t.amount), 0);
   const remain = income - spent - saved;
   const spentMap = spentByCategory();
 
-  document.getElementById('totalIncome').textContent    = fmt(income);
-  document.getElementById('totalSpent').textContent     = fmt(spent);
+  document.getElementById('totalIncome').textContent    = '€' + Math.round(income).toLocaleString('de-DE');
+  document.getElementById('totalSpent').textContent     = '€' + Math.round(spent).toLocaleString('de-DE');
   const remainEl = document.getElementById('totalRemaining');
   const remainDisplay = Math.max(0, remain);
-  remainEl.textContent = fmt(remainDisplay);
+  remainEl.textContent = '€' + Math.round(remainDisplay).toLocaleString('de-DE');
   remainEl.style.color = 'var(--accent)';
 
   const savingsCats = categories.filter(c => c.isSavings);
   const totalSaved  = savingsCats.reduce((s, c) => s + (spentMap[c.id] || 0), 0);
   const totalSavingsGoal = savingsCats.reduce((s, c) => s + c.budgeted, 0);
-  document.getElementById('totalSaved').textContent = fmt(totalSaved);
+  const savedEl = document.getElementById('totalSaved');
+  savedEl.textContent = (totalSaved < 0 ? '−' : '') + '€' + Math.abs(Math.round(totalSaved)).toLocaleString('de-DE');
+  savedEl.className = 'sum-val ' + (totalSaved >= 0 ? 'green' : 'red');
   const savedPct = totalSavingsGoal > 0 ? Math.round((totalSaved / totalSavingsGoal) * 100) : 0;
   document.getElementById('totalSavedSub').textContent = totalSavingsGoal > 0
     ? `${savedPct}% of €${totalSavingsGoal.toLocaleString('en-GB', {minimumFractionDigits:0})} goal`
@@ -1711,28 +2030,31 @@ function renderBudget() {
   savingsCatsAll.forEach(cat => {
     const catSaved = spentMap[cat.id] || 0;
     const avail    = cat.budgeted - catSaved;
-    const pct = cat.budgeted > 0 ? Math.min((catSaved / cat.budgeted) * 100, 100) : 0;
+    const pct = cat.budgeted > 0 ? Math.min(Math.max((catSaved / cat.budgeted) * 100, 0), 100) : 0;
     saveGoal  += cat.budgeted;
     saveTotal += catSaved;
     let statusClass, statusText, barColor;
-    if (pct >= 100)      { statusClass = 'ok';   statusText = 'Goal met';    barColor = '#16A34A'; }
-    else if (pct >= 50)  { statusClass = 'warn'; statusText = 'In progress'; barColor = '#D97706'; }
-    else                 { statusClass = 'over'; statusText = 'Not saved';   barColor = '#DC2626'; }
+    if (catSaved < 0)      { statusClass = 'over'; statusText = 'Withdrawn';   barColor = '#DC2626'; }
+    else if (pct >= 100)   { statusClass = 'ok';   statusText = 'Goal met';    barColor = '#16A34A'; }
+    else if (pct >= 50)    { statusClass = 'warn'; statusText = 'In progress'; barColor = '#D97706'; }
+    else                   { statusClass = 'over'; statusText = 'Not saved';   barColor = '#DC2626'; }
+    const catSavedDisplay = (catSaved < 0 ? '−' : '') + fmt(Math.abs(catSaved));
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><div class="cat-name"><span class="cat-dot" style="background:${cat.color}"></span>${cat.name}</div></td>
       <td class="num">${fmt(cat.budgeted)}</td>
-      <td class="num" style="color:var(--text)">${fmt(catSaved)}</td>
+      <td class="num" style="color:${catSaved < 0 ? 'var(--red)' : 'var(--text)'}">${catSavedDisplay}</td>
       <td class="num" style="color:${avail >= 0 ? 'var(--green)' : 'var(--red)'}">${avail < 0 ? '-' : ''}${fmt(Math.abs(avail))}</td>
       <td><div class="progress-wrap"><div class="progress-bar-bg"><div class="progress-bar" style="width:${pct}%;background:${barColor}"></div></div><span class="pct-label">${Math.round(pct)}%</span></div></td>
       <td><span class="status-pill ${statusClass}">${statusText}</span></td>`;
     saveBody.appendChild(tr);
   });
   const saveAvail = saveGoal - saveTotal;
+  const saveTotalDisplay = (saveTotal < 0 ? '−' : '') + fmt(Math.abs(saveTotal));
   document.getElementById('saveTotals').innerHTML = `
     <td style="padding:11px 16px;font-size:12px;color:var(--text-2)">Total</td>
     <td class="num" style="padding:11px 16px">${fmt(saveGoal)}</td>
-    <td class="num" style="padding:11px 16px;color:var(--text)">${fmt(saveTotal)}</td>
+    <td class="num" style="padding:11px 16px;color:${saveTotal < 0 ? 'var(--red)' : 'var(--text)'}">${saveTotalDisplay}</td>
     <td class="num" style="padding:11px 16px;color:${saveAvail >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt(Math.abs(saveAvail))}</td>
     <td style="padding:11px 16px"></td><td style="padding:11px 16px"></td>`;
 }
@@ -1761,6 +2083,7 @@ let activeCatFilter  = '';
 let activeTypeFilter = '';
 let activeTypeFilters = new Set();
 let activeCatFilters  = new Set();
+let activeAccFilters  = new Set();
 
 function toggleDropdown(menuId) {
   const menu = document.getElementById(menuId);
@@ -1770,7 +2093,7 @@ function toggleDropdown(menuId) {
 }
 
 document.addEventListener('click', function(e) {
-  if (!e.target.closest('#typeDropWrap') && !e.target.closest('#catDropWrap')) {
+  if (!e.target.closest('#typeDropWrap') && !e.target.closest('#catDropWrap') && !e.target.closest('#accDropWrap')) {
     document.querySelectorAll('.filter-dropdown-menu').forEach(m => m.style.display = 'none');
   }
 });
@@ -1806,17 +2129,17 @@ function renderActiveChips() {
   if (!wrap) return;
   const chips = [];
 
+  const typeColor = { expense: 'var(--red)', income: 'var(--green)', saving: '#7C3AED', investment: '#2563EB' };
   activeTypeFilters.forEach(t => {
-    const color = t === 'expense' ? 'var(--red)' : 'var(--green)';
     chips.push(`<span class="active-chip">
-      <span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></span>
+      <span style="width:7px;height:7px;border-radius:50%;background:${typeColor[t] || 'var(--text-3)'};flex-shrink:0"></span>
       ${t.charAt(0).toUpperCase()+t.slice(1)}
       <button onclick="removeTypeFilter('${t}')" style="background:none;border:none;cursor:pointer;color:inherit;font-size:11px;padding:0;line-height:1;opacity:0.7">✕</button>
     </span>`);
   });
 
   activeCatFilters.forEach(id => {
-    const cat = categories.find(c => String(c.id) === id);
+    const cat = [...categories, ...incomeCategories, ...investmentCategories].find(c => String(c.id) === id);
     if (!cat) return;
     chips.push(`<span class="active-chip">
       <span style="width:7px;height:7px;border-radius:50%;background:${cat.color};flex-shrink:0"></span>
@@ -1827,9 +2150,6 @@ function renderActiveChips() {
 
   if (chips.length > 0) {
     chips.push(`<button onclick="clearAllFilters()" style="font-size:12px;color:var(--text-3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:3px 6px">Clear all</button>`);
-    wrap.style.display = 'flex';
-  } else {
-    wrap.style.display = 'none';
   }
   wrap.innerHTML = chips.join('');
 }
@@ -1865,6 +2185,38 @@ function clearAllFilters() {
   renderActiveChips(); renderTxns();
 }
 
+function renderAccFilter() {
+  const menu = document.getElementById('accDropMenu');
+  if (!menu) return;
+  if (accounts.length === 0) {
+    menu.innerHTML = `<div style="padding:10px 14px;font-size:13px;color:var(--text-3)">No accounts defined.</div>`;
+    return;
+  }
+  menu.innerHTML = accounts.map(acc => {
+    const b = BANKS.find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff' };
+    const tc = b.textColor || '#fff';
+    const checked = activeAccFilters.has(String(acc.id));
+    return `<div class="fdd-item ${checked ? 'checked' : ''}" data-acc="${acc.id}" onclick="toggleAccFilter(${acc.id},'${acc.name}')">
+      <span class="fdd-check"></span>
+      <div style="width:14px;height:14px;border-radius:3px;background:${b.color};display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:500;color:${tc};margin-right:8px;flex-shrink:0">${b.short}</div>${acc.name}
+    </div>`;
+  }).join('');
+}
+
+function toggleAccFilter(id, name) {
+  const sid = String(id);
+  if (activeAccFilters.has(sid)) activeAccFilters.delete(sid);
+  else activeAccFilters.add(sid);
+  const badge = document.getElementById('accBadge');
+  const btn   = document.getElementById('accDropBtn');
+  badge.style.display = activeAccFilters.size ? '' : 'none';
+  badge.textContent   = activeAccFilters.size;
+  btn.classList.toggle('active', activeAccFilters.size > 0);
+  renderAccFilter();
+  renderActiveChips();
+  renderTxns();
+}
+
 function renderCatFilter() {
   const menu = document.getElementById('catDropMenu');
   if (!menu) return;
@@ -1873,6 +2225,7 @@ function renderCatFilter() {
   const hasExpense = activeTypeFilters.has('expense');
   const hasSaving  = activeTypeFilters.has('saving');
   const hasIncome  = activeTypeFilters.has('income');
+  const hasInvest  = activeTypeFilters.has('investment');
   const noTypeFilter = activeTypeFilters.size === 0;
 
   let visibleCats = [];
@@ -1884,6 +2237,7 @@ function renderCatFilter() {
     if (hasExpense) visibleCats = [...visibleCats, ...categories.filter(c => !c.isSavings)];
     if (hasSaving)  visibleCats = [...visibleCats, ...categories.filter(c => c.isSavings)];
     if (hasIncome)  visibleCats = [...visibleCats, ...incomeCategories];
+    if (hasInvest)  visibleCats = [...visibleCats, ...investmentCategories];
     // Deduplicate
     const seen = new Set();
     visibleCats = visibleCats.filter(c => { if (seen.has(c.id)) return false; seen.add(c.id); return true; });
@@ -1964,7 +2318,7 @@ function renderTxns() {
   if (!tbody) return;
 
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-icon">↕</div><div class="empty-msg">No transactions found.</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">↕</div><div class="empty-msg">No transactions found.</div></div></td></tr>`;
     return;
   }
 
@@ -1972,17 +2326,24 @@ function renderTxns() {
     const cat = t.type === 'income'
       ? (t.incomeCatId ? incomeCategories.find(c => c.id === t.incomeCatId) : null)
       : (t.catId ? catById(t.catId) : null);
+    const accObj = t.accountId ? accounts.find(a => a.id === t.accountId) : null;
+    const bankObj = accObj ? BANKS.find(b => b.id === accObj.bankId) : null;
+    const accBadge = accObj && bankObj
+      ? `<div style="display:inline-flex;align-items:center;gap:4px"><div style="width:14px;height:14px;border-radius:3px;background:${bankObj.color};display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:500;color:${bankObj.textColor||'#fff'}">${bankObj.short}</div><span style="font-size:12px;color:var(--text-2)">${accObj.name}</span></div>`
+      : '<span style="color:var(--text-3)">—</span>';
     const dateObj = new Date(t.date + 'T00:00:00');
     const dateStr = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     const catBadge = cat
       ? `<span style="display:inline-flex;align-items:center;gap:5px"><span class="cat-dot" style="background:${cat.color}"></span>${cat.name}</span>`
       : '<span style="color:var(--text-3)">—</span>';
-    const sign = t.type === 'income' ? '+' : '−';
+    const sign = t.type === 'income' ? '+' : t.type === 'saving' && t.savingDir !== 'withdraw' ? '+' : '−';
     return `<tr>
       <td class="txn-date">${dateStr}</td>
       <td><div class="txn-payee">${t.payee}</div></td>
+      <td class="txn-cat"><span style="font-size:12px;padding:2px 8px;border-radius:99px;background:${t.type === 'income' ? 'var(--green-bg, #EAF3DE)' : t.type === 'saving' ? '#EDE9FE' : t.type === 'investment' ? '#EFF6FF' : 'var(--red-bg, #FCEBEB)'};color:${t.type === 'income' ? 'var(--green)' : t.type === 'saving' ? '#7C3AED' : t.type === 'investment' ? '#2563EB' : 'var(--red)'}">${t.type === 'income' ? 'Income' : t.type === 'saving' ? 'Saving' : t.type === 'investment' ? 'Investment' : 'Expense'}</span></td>
       <td class="txn-cat">${catBadge}</td>
-      <td class="txn-amount ${t.type === 'income' ? 'income' : 'expense'}">${sign}${fmt(t.amount)}</td>
+      <td class="txn-cat">${accBadge}</td>
+      <td class="txn-amount ${t.type === 'income' ? 'income' : t.type === 'investment' ? 'invest' : t.type === 'saving' && t.savingDir !== 'withdraw' ? 'income' : 'expense'}">${sign}${fmt(t.amount)}</td>
       <td style="display:flex;gap:4px;justify-content:flex-end;padding:12px 16px">
         <button class="del-btn edit-btn" onclick="openEditTxn(${t.id})" title="Edit">✎</button>
         <button class="del-btn" onclick="deleteTxn(${t.id})" title="Delete">✕</button>
@@ -1996,7 +2357,7 @@ function renderReports() {
   const savingsCatIds = new Set(categories.filter(c => c.isSavings).map(c => c.id));
   const income = txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const spent  = txns.filter(t => t.type === 'expense' && !savingsCatIds.has(t.catId)).reduce((s, t) => s + t.amount, 0);
-  const saved  = txns.filter(t => (t.type === 'saving') || (t.type === 'expense' && savingsCatIds.has(t.catId))).reduce((s, t) => s + t.amount, 0);
+  const saved  = txns.filter(t => (t.type === 'saving') || (t.type === 'expense' && savingsCatIds.has(t.catId))).reduce((s, t) => s + ((t.type === 'saving' && t.savingDir === 'withdraw') ? -t.amount : t.amount), 0);
   const rate   = income > 0 ? Math.round((saved / income) * 100) : 0;
 
   document.getElementById('r-income').textContent = fmt(income);
@@ -2036,22 +2397,8 @@ function renderReports() {
         </div>`;
       }).join('');
 
-  if (charts.bar) charts.bar.destroy();
-  charts.bar = new Chart(document.getElementById('barChart'), {
-    type: 'bar',
-    data: {
-      labels: categories.map(c => c.name),
-      datasets: [
-        { label: 'Budgeted', data: categories.map(c => c.budgeted),           backgroundColor: '#E8E6E0', borderRadius: 4, barPercentage: 0.6 },
-        { label: 'Spent',    data: categories.map(c => spentMap[c.id] || 0),  backgroundColor: categories.map(c => c.color), borderRadius: 4, barPercentage: 0.6 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 10, padding: 12 } }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}` } } },
-      scales: { x: { grid: { display: false }, ticks: { font: { size: 10 } } }, y: { grid: { color: '#F0EEE8' }, ticks: { callback: v => v + '€', font: { size: 10 } } } }
-    }
-  });
+  renderBvrChips();
+  renderBarChart();
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const dailyData   = Array(daysInMonth).fill(0);
@@ -2063,6 +2410,8 @@ function renderReports() {
 
   // ── Income by source ──
   renderIncomeBySource();
+  // ── Balance by account ──
+  renderAccountBalance();
 
   if (charts.line) charts.line.destroy();
   charts.line = new Chart(document.getElementById('lineChart'), {
@@ -2088,10 +2437,16 @@ function openAddTxn() {
   document.getElementById('txnHeroLabel').textContent = 'Expense · today';
   document.getElementById('txnAmount').value = '';
   document.getElementById('txnPayee').value  = '';
-  document.getElementById('txnCat').value        = '';
-  document.getElementById('txnIncomeCat').value  = '';
-  document.getElementById('txnSavingCat').value  = '';
+  document.getElementById('txnCat').value           = '';
+  document.getElementById('txnIncomeCat').value     = '';
+  document.getElementById('txnSavingCat').value     = '';
+  document.getElementById('txnInvestmentCat').value = '';
+  document.getElementById('txnSavingDirection').value = 'add';
+  document.getElementById('txnAccount').value       = '';
+  document.getElementById('txnAccountErr').style.display = 'none';
   renderCatPills(null);
+  renderAccountPills(null);
+  setSavingDirection('add');
   initSegDate();
   setType('expense');
   document.getElementById('modalOverlay').classList.add('open');
@@ -2105,33 +2460,107 @@ function openEditTxn(id) {
   if (saveBtn) saveBtn.textContent = 'Update transaction';
   document.getElementById('txnAmount').value = t.amount;
   document.getElementById('txnPayee').value  = t.payee;
-  document.getElementById('txnCat').value        = t.type === 'expense' ? (t.catId || '') : '';
-  document.getElementById('txnIncomeCat').value  = t.incomeCatId || '';
-  document.getElementById('txnSavingCat').value  = t.type === 'saving' ? (t.catId || '') : '';
+  document.getElementById('txnCat').value           = t.type === 'expense'    ? (t.catId || '') : '';
+  document.getElementById('txnIncomeCat').value     = t.incomeCatId || '';
+  document.getElementById('txnSavingCat').value     = t.type === 'saving'     ? (t.catId || '') : '';
+  document.getElementById('txnInvestmentCat').value = t.type === 'investment' ? (t.catId || '') : '';
+  document.getElementById('txnSavingDirection').value = t.savingDir || 'add';
+  document.getElementById('txnAccount').value       = t.accountId || '';
+  document.getElementById('txnAccountErr').style.display = 'none';
   renderCatPills(t.type === 'expense' ? t.catId : null);
+  renderAccountPills(t.accountId || null);
   const parts = t.date.split('-');
   document.getElementById('txnDay').value   = String(parseInt(parts[2]));
   document.getElementById('txnMonth').value = String(parseInt(parts[1]));
   document.getElementById('txnYear').value  = parts[0];
   document.getElementById('txnDate').value  = t.date;
-  setType(t.type);
+  const editCatId = t.type === 'income' ? (t.incomeCatId || null) : t.type === 'saving' ? (t.catId || null) : null;
+  setType(t.type, editCatId);
+  if (t.type === 'saving') setSavingDirection(t.savingDir || 'add');
   updateTxnHero();
   document.getElementById('modalOverlay').classList.add('open');
 }
 
 function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
 
-function setType(t) {
+function setType(t, selectedCatId) {
   txnType = t;
-  document.getElementById('typeExp').className = 'type-btn' + (t === 'expense' ? ' active-exp' : '');
-  document.getElementById('typeSav').className = 'type-btn' + (t === 'saving'  ? ' active-exp' : '');
-  document.getElementById('typeInc').className = 'type-btn' + (t === 'income'  ? ' active-inc' : '');
-  document.getElementById('catRow').style.display        = t === 'expense' ? '' : 'none';
-  document.getElementById('savingCatRow').style.display  = t === 'saving'  ? '' : 'none';
-  document.getElementById('incomeCatRow').style.display  = t === 'income'  ? '' : 'none';
-  if (t === 'income') renderIncomeCatPills(null);
-  if (t === 'saving') renderSavingCatPills(null);
+  document.getElementById('typeExp').className = 'type-btn' + (t === 'expense'    ? ' active-exp' : '');
+  document.getElementById('typeSav').className = 'type-btn' + (t === 'saving'     ? ' active-exp' : '');
+  document.getElementById('typeInc').className = 'type-btn' + (t === 'income'     ? ' active-inc' : '');
+  document.getElementById('typeInv').className = 'type-btn' + (t === 'investment' ? ' active-inv' : '');
+  document.getElementById('catRow').style.display           = t === 'expense'    ? '' : 'none';
+  document.getElementById('savingCatRow').style.display     = t === 'saving'     ? '' : 'none';
+  document.getElementById('savingSubRow').style.display     = t === 'saving'     ? '' : 'none';
+  document.getElementById('incomeCatRow').style.display     = t === 'income'     ? '' : 'none';
+  document.getElementById('investmentCatRow').style.display = t === 'investment' ? '' : 'none';
+  if (t === 'income')     renderIncomeCatPills(selectedCatId ?? null);
+  if (t === 'saving')     renderSavingCatPills(selectedCatId ?? null);
+  if (t === 'investment') renderInvestmentCatPills(selectedCatId ?? null);
   updateTxnHero();
+}
+
+function setSavingDirection(dir) {
+  document.getElementById('txnSavingDirection').value = dir;
+  document.getElementById('savSubAdd').className      = 'btn ' + (dir === 'add'      ? 'btn-primary' : 'btn-outline') + ' ' + 'font-size:12px';
+  document.getElementById('savSubWithdraw').className = 'btn ' + (dir === 'withdraw' ? 'btn-primary' : 'btn-outline') + ' ' + 'font-size:12px';
+  const addBtn = document.getElementById('savSubAdd');
+  const wdBtn  = document.getElementById('savSubWithdraw');
+  addBtn.style.background  = dir === 'add'      ? '#7C3AED' : '';
+  addBtn.style.color       = dir === 'add'      ? '#fff'    : '';
+  addBtn.style.border      = dir === 'add'      ? 'none'    : '';
+  wdBtn.style.background   = dir === 'withdraw' ? '#7C3AED' : '';
+  wdBtn.style.color        = dir === 'withdraw' ? '#fff'    : '';
+  wdBtn.style.border       = dir === 'withdraw' ? 'none'    : '';
+  updateTxnHero();
+}
+
+function renderInvestmentCatPills(selectedId) {
+  const wrap = document.getElementById('txnInvestmentCatPills');
+  if (!wrap) return;
+  const invCats = investmentCategories;
+  if (invCats.length === 0) {
+    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">No investment categories. Add one in Settings.</span>`;
+    return;
+  }
+  wrap.innerHTML = invCats.map(cat => {
+    const sel = selectedId == cat.id;
+    return `<button type="button" onclick="selectInvestmentCatPill(${cat.id}, this)"
+      style="display:flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;border:1px solid ${sel ? '#2563EB' : 'var(--border-strong)'};background:${sel ? '#EFF6FF' : 'var(--surface)'};cursor:pointer;font-size:13px;font-weight:${sel ? '500' : '400'};color:${sel ? '#1D4ED8' : 'var(--text-2)'};font-family:var(--font)">
+      <span style="width:8px;height:8px;border-radius:50%;background:${cat.color};flex-shrink:0;display:inline-block"></span>${cat.name}
+    </button>`;
+  }).join('');
+  document.getElementById('txnInvestmentCat').value = selectedId ?? '';
+}
+
+function selectInvestmentCatPill(id, el) {
+  document.getElementById('txnInvestmentCat').value = id;
+  renderInvestmentCatPills(id);
+}
+
+function renderAccountPills(selectedId) {
+  const wrap = document.getElementById('txnAccountPills');
+  if (!wrap) return;
+  if (accounts.length === 0) {
+    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">No accounts defined. Add one in Settings.</span>`;
+    return;
+  }
+  wrap.innerHTML = accounts.map(acc => {
+    const b = BANKS.find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff' };
+    const tc = b.textColor || '#fff';
+    const sel = selectedId == acc.id;
+    return `<button type="button" onclick="selectAccountPill(${acc.id}, this)"
+      style="display:flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;border:1px solid ${sel ? 'transparent' : 'var(--border-strong)'};background:${sel ? '#EFF6FF' : 'var(--surface)'};cursor:pointer;font-size:13px;font-weight:${sel ? '500' : '400'};color:${sel ? '#1D4ED8' : 'var(--text-2)'};font-family:var(--font);transition:all 0.1s">
+      <div style="width:14px;height:14px;border-radius:3px;background:${b.color};display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:500;color:${tc};flex-shrink:0">${b.short}</div>${acc.name}
+    </button>`;
+  }).join('');
+  document.getElementById('txnAccount').value = selectedId ?? '';
+}
+
+function selectAccountPill(id, el) {
+  document.getElementById('txnAccount').value = id;
+  document.getElementById('txnAccountErr').style.display = 'none';
+  renderAccountPills(id);
 }
 
 function renderSavingCatPills(selectedId) {
@@ -2173,23 +2602,33 @@ async function addTransaction() {
   const date   = document.getElementById('txnDate').value;
   const amount = parseFloat(document.getElementById('txnAmount').value.replace(',', '.'));
   const payee  = document.getElementById('txnPayee').value.trim();
-  const catId       = txnType === 'expense' ? (parseInt(document.getElementById('txnCat').value) || null) : (txnType === 'saving' ? (parseInt(document.getElementById('txnSavingCat').value) || null) : null);
-  const incomeCatId = txnType === 'income'  ? (parseInt(document.getElementById('txnIncomeCat').value) || null) : null;
+  const catId        = txnType === 'expense'    ? (parseInt(document.getElementById('txnCat').value) || null)
+                     : txnType === 'saving'     ? (parseInt(document.getElementById('txnSavingCat').value) || null)
+                     : txnType === 'investment' ? (parseInt(document.getElementById('txnInvestmentCat').value) || null)
+                     : null;
+  const incomeCatId  = txnType === 'income' ? (parseInt(document.getElementById('txnIncomeCat').value) || null) : null;
+  const accountId    = parseInt(document.getElementById('txnAccount').value) || null;
+  const savingDir    = txnType === 'saving' ? (document.getElementById('txnSavingDirection').value || 'add') : null;
 
   if (!date || isNaN(amount) || amount <= 0 || !payee) {
     alert('Please fill in date, description, and a valid amount.');
+    return;
+  }
+  if (!accountId) {
+    const errEl = document.getElementById('txnAccountErr');
+    if (errEl) errEl.style.display = '';
     return;
   }
 
   if (editingTxnId !== null) {
     const t = transactions.find(x => x.id === editingTxnId);
     if (t) {
-      t.date = date; t.payee = payee; t.catId = catId; t.incomeCatId = incomeCatId; t.type = txnType; t.amount = amount;
+      t.date = date; t.payee = payee; t.catId = catId; t.incomeCatId = incomeCatId; t.accountId = accountId; t.savingDir = savingDir; t.type = txnType; t.amount = amount;
       await saveTransaction(t);
     }
     editingTxnId = null;
   } else {
-    const newTxn = { id: nextId++, date, payee, catId, incomeCatId, type: txnType, amount };
+    const newTxn = { id: nextId++, date, payee, catId, incomeCatId, type: txnType, amount, accountId, savingDir };
     transactions.push(newTxn);
     await saveTransaction(newTxn);
     await dbSetMeta('nextId', nextId);
@@ -2232,15 +2671,14 @@ function renderCatRows(cats, tbodyId) {
 
   if (cats.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="5" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No categories yet. Click "+ New category" to add one.</td>`;
+    tr.innerHTML = `<td colspan="7" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No categories yet. Click "+ New category" to add one.</td>`;
     tbody.appendChild(tr);
     return;
   }
 
   cats.forEach((cat, i) => {
-    const bg = i % 2 === 0 ? '#FFFFFF' : '#FAFAF8';
     const tr = document.createElement('tr');
-    tr.style.background = bg;
+    tr.style.background = '#FFFFFF';
     tr.setAttribute('draggable', 'true');
     tr.setAttribute('data-cat-id', cat.id);
     tr.setAttribute('data-tbody', tbodyId);
@@ -2276,11 +2714,13 @@ function renderCatRows(cats, tbodyId) {
 }
 
 function renderSettings() {
-  const spendCats  = categories.filter(c => !c.isSavings);
-  const savingsCats = categories.filter(c => c.isSavings);
-  renderCatRows(spendCats,  'settingsTableBody');
+  renderAccountRows();
+  const spendCats   = settingsCategories.filter(c => !c.isSavings);
+  const savingsCats = settingsCategories.filter(c => c.isSavings);
+  renderCatRows(spendCats,   'settingsTableBody');
   renderCatRows(savingsCats, 'savingsTableBody');
   renderIncomeCatRows();
+  renderInvestmentCatRows();
 }
 
 
@@ -2289,17 +2729,16 @@ function renderIncomeCatRows() {
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  if (incomeCategories.length === 0) {
+  if (settingsIncomeCategories.length === 0) {
     const tr = document.createElement('tr');
     tr.innerHTML = `<td colspan="4" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No categories yet. Click &quot;+ New category&quot; to add one.</td>`;
     tbody.appendChild(tr);
     return;
   }
 
-  incomeCategories.forEach((cat, i) => {
-    const bg = i % 2 === 0 ? '#FFFFFF' : '#FAFAF8';
+  settingsIncomeCategories.forEach((cat, i) => {
     const tr = document.createElement('tr');
-    tr.style.background = bg;
+    tr.style.background = '#FFFFFF';
     tr.setAttribute('draggable', 'true');
     tr.setAttribute('data-cat-id', cat.id);
     tr.setAttribute('data-tbody', 'incomeTableBody');
@@ -2326,8 +2765,103 @@ function renderIncomeCatRows() {
   initDragDrop('incomeTableBody');
 }
 
+function renderInvestmentCatRows() {
+  const tbody = document.getElementById('investmentTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (investmentCategories.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="5" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No categories yet. Click &quot;+ New category&quot; to add one.</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+
+  investmentCategories.forEach((cat) => {
+    const tr = document.createElement('tr');
+    tr.style.background = '#FFFFFF';
+    tr.setAttribute('draggable', 'true');
+    tr.setAttribute('data-cat-id', cat.id);
+    tr.setAttribute('data-tbody', 'investmentTableBody');
+    tr.innerHTML = `
+      <td style="padding:12px 8px 12px 16px; border-bottom:1px solid var(--border); cursor:grab; color:var(--text-3); font-size:16px; user-select:none" title="Drag to reorder">⠿</td>
+      <td style="padding:12px 16px; border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:9px;font-weight:500">
+          <span class="cat-color-dot" style="background:${cat.color};flex-shrink:0"></span>
+          ${cat.name}
+        </div>
+      </td>
+      <td style="padding:12px 16px; border-bottom:1px solid var(--border); text-align:right; width:160px">
+        <input type="number" min="0" step="1" value="${cat.budgeted || 0}"
+          style="width:90px;text-align:right;border:1px solid var(--border-strong);border-radius:6px;padding:4px 8px;font-size:13px;font-family:var(--font);color:var(--text)"
+          onchange="updateInvestmentBudget(${cat.id}, this.value)">
+      </td>
+      <td style="padding:12px 16px; border-bottom:1px solid var(--border); text-align:center; width:70px">
+        <span class="cat-color-dot" style="background:${cat.color}; width:18px; height:18px; border-radius:50%; display:inline-block; border:2px solid rgba(0,0,0,0.1)"></span>
+      </td>
+      <td style="padding:12px 16px; border-bottom:1px solid var(--border); width:80px">
+        <div class="action-cell">
+          <button class="icon-btn edit" onclick="openEditInvestmentCat(${cat.id})" title="Edit">✎</button>
+          <button class="icon-btn" onclick="deleteInvestmentCat(${cat.id})" title="Delete">✕</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  initDragDrop('investmentTableBody');
+}
+
+function openEditInvestmentCat(id) {
+  const cat = investmentCategories.find(c => c.id === id);
+  if (!cat) return;
+  editingInvestmentCatId = id;
+  document.getElementById('investmentCatModalTitle').textContent = 'Edit investment category';
+  document.getElementById('investmentCatSaveBtn').textContent = 'Save changes';
+  document.getElementById('investmentCatName').value = cat.name;
+  document.getElementById('investmentCatBudget').value = cat.budgeted || 0;
+  buildInvestmentCatColorPicker(cat.color);
+  document.getElementById('investmentCatModalOverlay').classList.add('open');
+}
+
 // ─── Drag & Drop ──────────────────────────────────────────────
 let dragSrc = null;
+
+function initAccountDragDrop() {
+  const tbody = document.getElementById('accountsTableBody');
+  if (!tbody) return;
+  tbody.querySelectorAll('tr[data-acc-id]').forEach(row => {
+    row.addEventListener('dragstart', (e) => {
+      dragSrc = row;
+      setTimeout(() => row.style.opacity = '0.4', 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', () => {
+      row.style.opacity = '';
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+      if (row !== dragSrc) row.classList.add('drag-over');
+    });
+    row.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      if (!dragSrc || dragSrc === row) return;
+      row.classList.remove('drag-over');
+      const srcId  = parseInt(dragSrc.getAttribute('data-acc-id'));
+      const destId = parseInt(row.getAttribute('data-acc-id'));
+      const srcIdx  = accounts.findIndex(a => a.id === srcId);
+      const destIdx = accounts.findIndex(a => a.id === destId);
+      if (srcIdx < 0 || destIdx < 0) return;
+      const [moved] = accounts.splice(srcIdx, 1);
+      accounts.splice(destIdx, 0, moved);
+      await dbSetMeta('accountOrder', accounts.map(a => a.id));
+      flashSaved();
+      renderAccountRows();
+    });
+  });
+}
 
 function initDragDrop(tbodyId) {
   const tbody = document.getElementById(tbodyId);
@@ -2359,7 +2893,14 @@ function initDragDrop(tbodyId) {
       const srcId  = parseInt(dragSrc.getAttribute('data-cat-id'));
       const destId = parseInt(row.getAttribute('data-cat-id'));
 
-      if (tbodyId === 'incomeTableBody') {
+      if (tbodyId === 'investmentTableBody') {
+        const srcIdx  = investmentCategories.findIndex(c => c.id === srcId);
+        const destIdx = investmentCategories.findIndex(c => c.id === destId);
+        const [moved] = investmentCategories.splice(srcIdx, 1);
+        investmentCategories.splice(destIdx, 0, moved);
+        await dbSetMeta('investmentCategories', investmentCategories);
+        renderInvestmentCatRows();
+      } else if (tbodyId === 'incomeTableBody') {
         const srcIdx  = incomeCategories.findIndex(c => c.id === srcId);
         const destIdx = incomeCategories.findIndex(c => c.id === destId);
         const [moved] = incomeCategories.splice(srcIdx, 1);
@@ -2385,11 +2926,11 @@ function toggleAdvanced() {
   const chevron = document.getElementById('advancedChevron');
   const isOpen  = panel.style.display !== 'none';
   panel.style.display  = isOpen ? 'none' : 'block';
-  chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
+  chevron.textContent = isOpen ? '▼' : '▲';
 }
 
 async function updateBudget(id, val) {
-  const cat = categories.find(c => c.id === id);
+  const cat = settingsCategories.find(c => c.id === id);
   if (cat) {
     cat.budgeted = parseFloat(val) || 0;
     await saveMonthCategories(currentSettingsKey(), categories);
@@ -2399,7 +2940,7 @@ async function updateBudget(id, val) {
 }
 
 async function toggleSavings(id, val) {
-  const cat = categories.find(c => c.id === id);
+  const cat = settingsCategories.find(c => c.id === id);
   if (cat) {
     cat.isSavings = val;
     await saveCategory(cat);
@@ -2408,7 +2949,7 @@ async function toggleSavings(id, val) {
 }
 
 function buildColorPicker(currentColor) {
-  const usedColors = new Set(categories.filter(c => c.color !== currentColor).map(c => c.color));
+  const usedColors = new Set(settingsCategories.filter(c => c.color !== currentColor).map(c => c.color));
   const el = document.getElementById('colorPicker');
   const available = PALETTE.filter(c => !usedColors.has(c));
   if (available.length === 0) {
@@ -2445,7 +2986,7 @@ function openAddCat(isSavings = false) {
 }
 
 function openEditCat(id) {
-  const cat = categories.find(c => c.id === id);
+  const cat = settingsCategories.find(c => c.id === id);
   if (!cat) return;
   editingCatId = id;
   document.getElementById('catModalTitle').textContent = cat.isSavings ? 'Edit savings category' : 'Edit spending category';
@@ -2477,7 +3018,12 @@ async function saveCat() {
     }
   } else {
     const newCat = { id: nextCatId++, name, color: selectedColor, budgeted, isSavings };
-    await saveCategory(newCat);
+    settingsCategories.push(newCat);
+    await saveMonthCategories(currentSettingsKey(), settingsCategories);
+    await dbSetMeta('nextCatId', nextCatId);
+    if (settingsMonth === currentMonth && settingsYear === currentYear) {
+      categories = [...settingsCategories];
+    }
   }
 
   closeCatModal();
@@ -2509,7 +3055,7 @@ async function confirmDeleteCat() {
 }
 
 async function deleteCat(id) {
-  const cat = categories.find(c => c.id === id);
+  const cat = settingsCategories.find(c => c.id === id);
   if (!cat) return;
   const inUse = transactions.some(t => t.catId === id);
   if (!inUse) {
@@ -2527,10 +3073,8 @@ async function deleteCat(id) {
 
 async function _doDeleteCat(id) {
   await removeCategory(id);
-  render();
   renderSettings();
   updateDbInfo();
-  if (document.getElementById('view-reports').classList.contains('active')) renderReports();
 }
 
 // ─── Seg. date helpers ────────────────────────────────────────────
@@ -2571,7 +3115,7 @@ function updateTxnHero() {
   const type    = txnType === 'expense' ? 'Expense' : txnType === 'saving' ? 'Saving' : 'Income';
   const dateStr = dateEl?.value ? new Date(dateEl.value + 'T12:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : 'today';
   lbl.textContent = `${type} · ${dateStr}`;
-  amtEl.style.color = txnType === 'expense' ? '#DC2626' : '#16A34A';
+  amtEl.style.color = 'var(--text)';
 }
 
 function renderCatPills(selectedId) {
@@ -2653,6 +3197,359 @@ function updateTodayLabel() {
 }
 
 // ─── All time modal ───────────────────────────────────────────────
+// ── Account functions ──────────────────────────────────────────
+let editingAccountId = null;
+let selectedAccountType = null;
+let selectedBankId = null;
+
+function openAddAccount() {
+  editingAccountId = null;
+  selectedAccountType = null;
+  selectedBankId = null;
+  document.getElementById('accountModalTitle').textContent = 'New account';
+  document.getElementById('accountName').value = '';
+  document.getElementById('accountBankSearch').value = '';
+  document.getElementById('accountBankId').value = '';
+
+  ['accountNameErr','accountBankErr','accountTypeErr'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  ['accTypeChecking','accTypeSavings','accTypeInvestment'].forEach(id => {
+    document.getElementById(id).classList.remove('btn-primary');
+    document.getElementById(id).classList.add('btn-outline');
+  });
+  renderBankGrid();
+  document.getElementById('accountModalOverlay').classList.add('open');
+}
+
+function openEditAccount(id) {
+  const acc = accounts.find(a => a.id === id);
+  if (!acc) return;
+  editingAccountId = id;
+  selectedAccountType = acc.type;
+  selectedBankId = acc.bankId;
+  document.getElementById('accountModalTitle').textContent = 'Edit account';
+  document.getElementById('accountName').value = acc.name;
+  document.getElementById('accountBankSearch').value = '';
+  document.getElementById('accountBankId').value = acc.bankId;
+
+  ['accountNameErr','accountBankErr','accountTypeErr'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  ['accTypeChecking','accTypeSavings','accTypeInvestment'].forEach(id => {
+    document.getElementById(id).classList.remove('btn-primary');
+    document.getElementById(id).classList.add('btn-outline');
+  });
+  const typeBtn = document.getElementById('accType' + acc.type.charAt(0).toUpperCase() + acc.type.slice(1));
+  if (typeBtn) { typeBtn.classList.remove('btn-outline'); typeBtn.classList.add('btn-primary'); }
+  renderBankGrid();
+  document.getElementById('accountModalOverlay').classList.add('open');
+}
+
+function closeAccountModal() {
+  document.getElementById('accountModalOverlay').classList.remove('open');
+}
+
+function selectAccountType(type) {
+  selectedAccountType = type;
+  ['accTypeChecking','accTypeSavings','accTypeInvestment'].forEach(id => {
+    document.getElementById(id).classList.remove('btn-primary');
+    document.getElementById(id).classList.add('btn-outline');
+  });
+  const btn = document.getElementById('accType' + type.charAt(0).toUpperCase() + type.slice(1));
+  if (btn) { btn.classList.remove('btn-outline'); btn.classList.add('btn-primary'); }
+  document.getElementById('accountTypeErr').style.display = 'none';
+}
+
+function renderBankGrid() {
+  const q = (document.getElementById('accountBankSearch').value || '').toLowerCase();
+  const filtered = BANKS.filter(b => b.name.toLowerCase().includes(q) || b.short.toLowerCase().includes(q));
+  const grid = document.getElementById('bankGrid');
+  grid.innerHTML = filtered.map(b => {
+    const selected = b.id === selectedBankId;
+    const tc = b.textColor || '#fff';
+    return `<div onclick="selectBank('${b.id}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border-radius:8px;border:1px solid ${selected ? '#2563EB' : 'var(--border)'};background:${selected ? '#EFF6FF' : 'var(--surface-2)'};cursor:pointer">
+      <div style="width:28px;height:28px;border-radius:6px;background:${b.color};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;color:${tc}">${b.short}</div>
+      <span style="font-size:10px;color:var(--text-secondary);text-align:center;line-height:1.2">${b.name}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectBank(id) {
+  selectedBankId = id;
+  document.getElementById('accountBankId').value = id;
+  document.getElementById('accountBankErr').style.display = 'none';
+  renderBankGrid();
+}
+
+async function saveAccountModal() {
+  const name = document.getElementById('accountName').value.trim();
+  const bankId = selectedBankId;
+  const type = selectedAccountType;
+  const balance = 0;
+  let valid = true;
+  if (!name) { document.getElementById('accountNameErr').style.display = ''; valid = false; }
+  if (!bankId) { document.getElementById('accountBankErr').style.display = ''; valid = false; }
+  if (!type) { document.getElementById('accountTypeErr').style.display = ''; valid = false; }
+  // balance is optional — default to 0 if empty
+  if (!valid) return;
+  const acc = { id: editingAccountId ?? nextAccountId++, name, bankId, type, balance };
+  await saveAccount(acc);
+  closeAccountModal();
+  renderAccountRows();
+}
+
+function renderAccountRows() {
+  const tbody = document.getElementById('accountsTableBody');
+  if (!tbody) return;
+  if (accounts.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No accounts yet. Click "+ New account" to add one.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = accounts.map((acc, idx) => {
+    const b = BANKS.find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff', name: acc.bankId };
+    const tc = b.textColor || '#fff';
+    const typeLabel = acc.type.charAt(0).toUpperCase() + acc.type.slice(1);
+    const accBg = idx % 2 === 0 ? '#FFFFFF' : '#FFFFFF';
+    return `<tr draggable="true" data-acc-id="${acc.id}" style="background:#FFFFFF">
+      <td style="padding:10px 8px 10px 12px;border-bottom:1px solid var(--border);cursor:grab;color:var(--text-3);font-size:16px;user-select:none" title="Drag to reorder">⠿</td>
+      <td style="padding:12px 16px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:20px;height:20px;border-radius:4px;background:${b.color};display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:500;color:${tc};flex-shrink:0">${b.short}</div>
+          <span style="font-size:13px;font-weight:500;color:var(--text)">${acc.name}</span>
+        </div>
+      </td>
+      <td style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-2)">${b.name}</td>
+      <td style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-2)">${typeLabel}</td>
+
+      <td style="padding:12px 16px;border-bottom:1px solid var(--border);text-align:center">
+        <div class="action-cell">
+          <button class="icon-btn edit" onclick="openEditAccount(${acc.id})" title="Edit">✎</button>
+          <button class="icon-btn" onclick="deleteAccountModal(${acc.id})" title="Delete">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  initAccountDragDrop();
+}
+
+let pendingDeleteAccId = null;
+
+async function deleteAccountModal(id) {
+  const acc = accounts.find(a => a.id === id);
+  if (!acc) return;
+  pendingDeleteAccId = id;
+  const linked = transactions.filter(t => t.accountId === id).length;
+  document.getElementById('deleteAccModalMsg').textContent = linked > 0
+    ? `Delete "${acc.name}"? This account is linked to ${linked} transaction(s). They will become unlinked.`
+    : `Delete "${acc.name}"? This action cannot be undone.`;
+  document.getElementById('deleteAccModalOverlay').classList.add('open');
+}
+
+function closeDeleteAccModal() {
+  pendingDeleteAccId = null;
+  document.getElementById('deleteAccModalOverlay').classList.remove('open');
+}
+
+async function confirmDeleteAcc() {
+  if (pendingDeleteAccId === null) return;
+  await deleteAccount(pendingDeleteAccId);
+  renderAccountRows();
+  closeDeleteAccModal();
+}
+
+document.getElementById('deleteAccModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeDeleteAccModal();
+});
+
+document.getElementById('accountModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeAccountModal();
+});
+
+function openAccountDetail(accId) {
+  const acc = accounts.find(a => a.id === accId);
+  if (!acc) return;
+  const b = BANKS.find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff', name: acc.bankId };
+  const tc = b.textColor || '#fff';
+  const txns = monthlyTxns().filter(t => t.accountId === accId);
+
+  document.getElementById('accDetailLogo').style.background = b.color;
+  document.getElementById('accDetailLogo').style.color = tc;
+  document.getElementById('accDetailLogo').textContent = b.short;
+  document.getElementById('accDetailTitle').textContent = acc.name;
+
+  const now = new Date();
+  const monthName = new Date(currentYear, currentMonth).toLocaleString('en', { month: 'long' });
+  document.getElementById('accDetailSub').textContent = `${b.name} · ${acc.type.charAt(0).toUpperCase() + acc.type.slice(1)} · ${monthName} ${currentYear}`;
+
+  // Calculate totals
+  let income = 0, expenses = 0, saved = 0, invested = 0, withdrawn = 0;
+  txns.forEach(t => {
+    if (t.type === 'income') income += t.amount;
+    else if (t.type === 'expense') expenses += t.amount;
+    else if (t.type === 'saving' && t.savingDir === 'withdraw') withdrawn += t.amount;
+    else if (t.type === 'saving') saved += t.amount;
+    else if (t.type === 'investment') invested += t.amount;
+  });
+
+  const net = acc.type === 'checking' ? income - expenses - saved - withdrawn
+            : acc.type === 'investment' ? invested - expenses
+            : saved - withdrawn - expenses;
+
+  // Summary cards
+  let summaryCards = '';
+  if (acc.type === 'checking') {
+    summaryCards = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
+        <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Income</div><div style="font-size:22px;font-weight:500;color:var(--green)">${fmt(income)}</div></div>
+        <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Expenses</div><div style="font-size:22px;font-weight:500;color:var(--red)">${fmt(expenses)}</div></div>
+        <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Saved</div><div style="font-size:22px;font-weight:500;color:var(--green)">${fmt(saved)}</div></div>
+        <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Net balance</div><div style="font-size:18px;font-weight:500;color:${net>=0?'var(--green)':'var(--red)'}">  ${net>=0?'+':'−'}${fmt(Math.abs(net))}</div></div>
+      </div>`;
+  } else {
+    summaryCards = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px">
+        <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Saved</div><div style="font-size:22px;font-weight:500;color:var(--green)">${fmt(saved)}</div></div>
+        <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Withdrawn</div><div style="font-size:22px;font-weight:500;color:var(--red)">${fmt(withdrawn)}</div></div>
+        <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Net</div><div style="font-size:18px;font-weight:500;color:${net>=0?'var(--green)':'var(--red)'}">  ${net>=0?'+':'−'}${fmt(Math.abs(net))}</div></div>
+      </div>`;
+  }
+
+  // Category breakdowns
+  function catBreakdown(label, filteredTxns, color) {
+    if (filteredTxns.length === 0) return `<div style="background:var(--surface-1);border:0.5px solid var(--border);border-radius:12px;padding:20px 18px"><div style="font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px">${label}</div><div style="font-size:13px;color:var(--text-3)">No transactions</div></div>`;
+    const bycat = {};
+    filteredTxns.forEach(t => {
+      const catId = t.incomeCatId || t.catId;
+      const cat = catId
+        ? ([...categories, ...incomeCategories].find(c => c.id === catId))
+        : null;
+      const name = cat ? cat.name : 'Uncategorised';
+      const dotColor = cat ? cat.color : '#999';
+      if (!bycat[name]) bycat[name] = { total: 0, color: dotColor };
+      bycat[name].total += t.amount;
+    });
+    const total = filteredTxns.reduce((s, t) => s + t.amount, 0);
+    const rows = Object.entries(bycat).sort((a,b) => b[1].total - a[1].total).map(([name, v]) => {
+      const pct = total > 0 ? Math.round(v.total / total * 100) : 0;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:0.5px solid var(--border)">
+        <div style="width:8px;height:8px;border-radius:50%;background:${v.color};flex-shrink:0"></div>
+        <span style="font-size:13px;color:var(--text);flex:1">${name}</span>
+        <span style="font-size:13px;font-weight:500;color:${color}">${fmt(v.total)}</span>
+        <span style="font-size:11px;color:var(--text-3);min-width:30px;text-align:right">${pct}%</span>
+      </div>`;
+    }).join('');
+    return `<div style="background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:20px 18px">
+      <div style="font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;font-weight:500">${label}</div>
+      ${rows}
+    </div>`;
+  }
+
+  let breakdown = '';
+  if (acc.type === 'checking') {
+    const cols = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:4px">
+      ${catBreakdown('Income by category', txns.filter(t => t.type==='income'), 'var(--green)')}
+      ${catBreakdown('Expenses by category', txns.filter(t => t.type==='expense'), 'var(--red)')}
+      ${catBreakdown('Saved by category', txns.filter(t => t.type==='saving' && t.savingDir !== 'withdraw'), '#7C3AED')}
+    </div>`;
+    breakdown = cols;
+  } else if (acc.type === 'investment') {
+    const totalInvested = txns.filter(t => t.type==='saving').reduce((s,t) => s+t.amount, 0);
+    const txnCount = txns.filter(t => t.type==='saving').length;
+    const avg = txnCount > 0 ? totalInvested / txnCount : 0;
+    const txnRows = txns.filter(t => t.type==='saving').sort((a,b) => b.date.localeCompare(a.date)).map(t => {
+      const cat = t.catId ? categories.find(c => c.id === t.catId) : null;
+      const catLabel = cat ? `<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#EDE9FE;color:#7C3AED">${cat.name}</span>` : '<span style="color:var(--text-3);font-size:12px">—</span>';
+      const parts = t.date.split('-');
+      const dateStr = parseInt(parts[2]) + ' ' + new Date(t.date+'T00:00:00').toLocaleString('en',{month:'short'});
+      return `<div style="display:grid;grid-template-columns:80px 1fr 140px 80px;gap:8px;padding:11px 0;border-bottom:0.5px solid var(--border);align-items:center">
+        <span style="color:var(--text-3);font-size:12px">${dateStr}</span>
+        <span style="color:var(--text);font-size:13px">${t.payee}</span>
+        <span>${catLabel}</span>
+        <span style="color:var(--green);font-weight:500;font-size:13px;text-align:right">${fmt(t.amount)}</span>
+      </div>`;
+    }).join('') || '<div style="padding:12px 0;font-size:13px;color:var(--text-3)">No transactions this month.</div>';
+    breakdown = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px">
+        <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Total invested</div><div style="font-size:22px;font-weight:500;color:var(--green)">${fmt(totalInvested)}</div></div>
+        <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Transactions</div><div style="font-size:22px;font-weight:500;color:var(--text)">${txnCount}</div></div>
+        <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Avg. per transaction</div><div style="font-size:22px;font-weight:500;color:var(--text)">${fmt(avg)}</div></div>
+      </div>
+      <div style="background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:20px 18px">
+        <div style="font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;font-weight:500">Transactions</div>
+        <div style="display:grid;grid-template-columns:80px 1fr 140px 80px;gap:8px;padding:0 0 8px;border-bottom:0.5px solid var(--border);margin-bottom:4px">
+          <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3)">Date</span>
+          <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3)">Description</span>
+          <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3)">Category</span>
+          <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3);text-align:right">Amount</span>
+        </div>
+        ${txnRows}
+      </div>`;
+  } else {
+    breakdown = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+      ${catBreakdown('Saved by category', txns.filter(t => t.type==='saving' && t.savingDir !== 'withdraw'), 'var(--green)')}
+      ${catBreakdown('Withdrawn by category', txns.filter(t => t.type==='saving' && t.savingDir === 'withdraw'), 'var(--red)')}
+    </div>`;
+  }
+
+  document.getElementById('accDetailContent').innerHTML = acc.type === 'investment' ? breakdown : summaryCards + breakdown;
+  document.getElementById('accDetailModalOverlay').classList.add('open');
+}
+
+function closeAccDetail() {
+  document.getElementById('accDetailModalOverlay').classList.remove('open');
+}
+
+document.getElementById('accDetailModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeAccDetail();
+});
+
+function renderAccountBalance() {
+  const el = document.getElementById('accountBalanceLegend');
+  if (!el) return;
+  if (accounts.length === 0) {
+    el.innerHTML = `<div style="font-size:13px;color:var(--text-3);padding:16px 0">No accounts defined yet.</div>`;
+    return;
+  }
+  const txns = monthlyTxns();
+  el.innerHTML = accounts.map(acc => {
+    const b = BANKS.find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff', name: acc.bankId };
+    const tc = b.textColor || '#fff';
+    const accTxns = txns.filter(t => t.accountId === acc.id);
+    let total = 0;
+    if (acc.type === 'checking') {
+      accTxns.forEach(t => {
+        if (t.type === 'income') total += t.amount;
+        else if (t.type === 'saving' && t.savingDir === 'withdraw') total += t.amount;
+        else total -= t.amount;
+      });
+    } else if (acc.type === 'investment') {
+      accTxns.forEach(t => {
+        if (t.type === 'investment') total += t.amount;
+        else if (t.type === 'expense') total -= t.amount;
+      });
+    } else {
+      // Savings: +add −withdraw −expenses
+      accTxns.forEach(t => {
+        if (t.type === 'saving' && t.savingDir !== 'withdraw') total += t.amount;
+        else if (t.type === 'saving' && t.savingDir === 'withdraw') total -= t.amount;
+        else if (t.type === 'expense') total -= t.amount;
+      });
+    }
+    const color = total >= 0 ? 'var(--green)' : 'var(--red)';
+    const sign = total >= 0 ? '+' : '−';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:7px;min-width:0">
+        <div style="width:20px;height:20px;border-radius:4px;background:${b.color};display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:500;color:${tc};flex-shrink:0">${b.short}</div>
+        <div style="min-width:0">
+          <div style="font-size:13px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${acc.name}</div>
+          <div style="font-size:11px;color:var(--text-3)">${b.name} · ${acc.type.charAt(0).toUpperCase() + acc.type.slice(1)}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span style="font-size:13px;font-weight:500;font-variant-numeric:tabular-nums;color:${color}">${sign}${fmt(Math.abs(total))}</span>
+        <button onclick="openAccountDetail(${acc.id})" style="font-size:11px;color:#2563EB;background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;white-space:nowrap">View →</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderIncomeBySource() {
   const el = document.getElementById('incomeLegend');
   if (!el) return;
@@ -2708,15 +3605,18 @@ function renderIncomeBySource() {
 }
 
 function openAllTime() {
-  const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const spent  = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const saved  = income - spent;
+  const income   = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const spent    = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const saved    = transactions.filter(t => t.type === 'saving' && t.savingDir !== 'withdraw').reduce((s, t) => s + t.amount, 0)
+                 - transactions.filter(t => t.type === 'saving' && t.savingDir === 'withdraw').reduce((s, t) => s + t.amount, 0);
+  const invested = transactions.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0);
 
-  document.getElementById('at-income').textContent = fmt(income);
-  document.getElementById('at-spent').textContent  = fmt(spent);
-  document.getElementById('at-saved').textContent  = fmt(saved);
-  document.getElementById('at-saved').style.color  = saved >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('at-income').textContent   = fmt(income);
+  document.getElementById('at-spent').textContent    = fmt(spent);
+  document.getElementById('at-saved').textContent    = fmt(saved);
+  document.getElementById('at-invested').textContent = fmt(invested);
 
+  // Spending by category
   const catMap = {};
   transactions.filter(t => t.type === 'expense' && t.catId).forEach(t => {
     catMap[t.catId] = (catMap[t.catId] || 0) + t.amount;
@@ -2742,13 +3642,49 @@ function openAllTime() {
         </tr>`;
       }).join('');
 
+  // Yearly breakdown — current civil year (Jan–Dec YTD)
+  const thisYear = new Date().getFullYear();
+  const yearMap = {};
+  transactions.forEach(t => {
+    const y = new Date(t.date + 'T00:00:00').getFullYear();
+    if (!yearMap[y]) yearMap[y] = { income: 0, spent: 0, saved: 0, invested: 0 };
+    if (t.type === 'income')     yearMap[y].income   += t.amount;
+    if (t.type === 'expense')    yearMap[y].spent    += t.amount;
+    if (t.type === 'saving')     yearMap[y].saved    += t.savingDir === 'withdraw' ? -t.amount : t.amount;
+    if (t.type === 'investment') yearMap[y].invested += t.amount;
+  });
+  const yearKeys = Object.keys(yearMap).map(Number).filter(y => y <= thisYear).sort((a,b) => b - a);
+  document.getElementById('at-year-table').innerHTML = yearKeys.length === 0
+    ? `<tr><td style="color:var(--text-3);font-size:13px;padding:8px 0">No data yet.</td></tr>`
+    : `<tr style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3)">
+        <td style="padding:4px 0">Year</td>
+        <td style="padding:4px 8px;text-align:right">Income</td>
+        <td style="padding:4px 8px;text-align:right">Spent</td>
+        <td style="padding:4px 8px;text-align:right">Saved</td>
+        <td style="padding:4px 0;text-align:right">Invested</td>
+      </tr>`
+    + yearKeys.map((y, i) => {
+        const d = yearMap[y];
+        const isYTD = y === thisYear;
+        return `<tr style="background:${i%2===0?'var(--bg)':'transparent'}">
+          <td style="padding:8px 6px;font-size:13px;font-weight:500">${y}${isYTD ? ' <span style="font-size:10px;color:var(--text-3);font-weight:400">YTD</span>' : ''}</td>
+          <td style="padding:8px 6px;text-align:right;font-size:13px;color:var(--green);font-variant-numeric:tabular-nums">${fmt(d.income)}</td>
+          <td style="padding:8px 6px;text-align:right;font-size:13px;color:var(--red);font-variant-numeric:tabular-nums">${fmt(d.spent)}</td>
+          <td style="padding:8px 6px;text-align:right;font-size:13px;color:#7C3AED;font-variant-numeric:tabular-nums">${fmt(Math.abs(d.saved))}</td>
+          <td style="padding:8px 6px;text-align:right;font-size:13px;color:#2563EB;font-variant-numeric:tabular-nums">${fmt(d.invested)}</td>
+        </tr>`;
+      }).join('');
+
+  // Monthly breakdown
   const monthMap = {};
   transactions.forEach(t => {
     const d   = new Date(t.date + 'T00:00:00');
     const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    if (!monthMap[key]) monthMap[key] = { income: 0, spent: 0 };
-    if (t.type === 'income')  monthMap[key].income += t.amount;
-    if (t.type === 'expense') monthMap[key].spent  += t.amount;
+    if (!monthMap[key]) monthMap[key] = { income: 0, spent: 0, saved: 0, invested: 0 };
+    if (t.type === 'income')     monthMap[key].income   += t.amount;
+    if (t.type === 'expense')    monthMap[key].spent    += t.amount;
+    if (t.type === 'saving')     monthMap[key].saved    += t.savingDir === 'withdraw' ? -t.amount : t.amount;
+    if (t.type === 'investment') monthMap[key].invested += t.amount;
   });
   const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const sortedKeys = Object.keys(monthMap).sort().reverse();
@@ -2758,16 +3694,18 @@ function openAllTime() {
         <td style="padding:4px 0">Month</td>
         <td style="padding:4px 8px;text-align:right">Income</td>
         <td style="padding:4px 8px;text-align:right">Spent</td>
-        <td style="padding:4px 0;text-align:right">Net</td>
+        <td style="padding:4px 8px;text-align:right">Saved</td>
+        <td style="padding:4px 0;text-align:right">Invested</td>
       </tr>`
     + sortedKeys.map((key, i) => {
         const [y, m] = key.split('-');
-        const net = monthMap[key].income - monthMap[key].spent;
+        const d = monthMap[key];
         return `<tr style="background:${i%2===0?'var(--bg)':'transparent'}">
           <td style="padding:8px 6px;font-size:13px;font-weight:500">${MON[parseInt(m)-1]} ${y}</td>
-          <td style="padding:8px 6px;text-align:right;font-size:13px;color:var(--green);font-variant-numeric:tabular-nums">${fmt(monthMap[key].income)}</td>
-          <td style="padding:8px 6px;text-align:right;font-size:13px;color:var(--red);font-variant-numeric:tabular-nums">${fmt(monthMap[key].spent)}</td>
-          <td style="padding:8px 6px;text-align:right;font-size:13px;font-weight:600;color:${net>=0?'var(--green)':'var(--red)'};font-variant-numeric:tabular-nums">${net<0?'-':''}${fmt(Math.abs(net))}</td>
+          <td style="padding:8px 6px;text-align:right;font-size:13px;color:var(--green);font-variant-numeric:tabular-nums">${fmt(d.income)}</td>
+          <td style="padding:8px 6px;text-align:right;font-size:13px;color:var(--red);font-variant-numeric:tabular-nums">${fmt(d.spent)}</td>
+          <td style="padding:8px 6px;text-align:right;font-size:13px;color:#7C3AED;font-variant-numeric:tabular-nums">${fmt(Math.abs(d.saved))}</td>
+          <td style="padding:8px 6px;text-align:right;font-size:13px;color:#2563EB;font-variant-numeric:tabular-nums">${fmt(d.invested)}</td>
         </tr>`;
       }).join('');
 
@@ -2783,6 +3721,70 @@ document.getElementById('allTimeOverlay').addEventListener('click', function(e) 
 // ─── Income Categories ───────────────────────────────────────────
 let editingIncomeCatId = null;
 
+function buildInvestmentCatColorPicker(selected) {
+  const picker = document.getElementById('investmentCatColorPicker');
+  if (!picker) return;
+  selectedInvestmentColor = selected || '#2563EB';
+  picker.innerHTML = PALETTE.map(c => `<span onclick="pickInvestmentColor('${c}')" style="width:22px;height:22px;border-radius:50%;background:${c};display:inline-block;cursor:pointer;border:2px solid ${c === selectedInvestmentColor ? '#111' : 'transparent'};transition:border 0.1s"></span>`).join('');
+}
+
+function pickInvestmentColor(c) {
+  selectedInvestmentColor = c;
+  buildInvestmentCatColorPicker(c);
+}
+
+let editingInvestmentCatId = null;
+let selectedInvestmentColor = '#2563EB';
+
+function openAddInvestmentCat() {
+  editingInvestmentCatId = null;
+  document.getElementById('investmentCatModalTitle').textContent = 'New investment category';
+  document.getElementById('investmentCatSaveBtn').textContent = 'Save category';
+  document.getElementById('investmentCatName').value = '';
+  document.getElementById('investmentCatBudget').value = '';
+  buildInvestmentCatColorPicker(PALETTE[investmentCategories.length % PALETTE.length]);
+  document.getElementById('investmentCatModalOverlay').classList.add('open');
+}
+
+function closeInvestmentCatModal() {
+  document.getElementById('investmentCatModalOverlay').classList.remove('open');
+  editingInvestmentCatId = null;
+}
+
+async function saveInvestmentCat() {
+  const name = document.getElementById('investmentCatName').value.trim();
+  if (!name) { alert('Please enter a category name.'); return; }
+  const budgeted = parseFloat(document.getElementById('investmentCatBudget').value) || 0;
+  if (editingInvestmentCatId !== null) {
+    const c = investmentCategories.find(c => c.id === editingInvestmentCatId);
+    if (c) { c.name = name; c.color = selectedInvestmentColor; c.budgeted = budgeted; }
+  } else {
+    const newId = investmentCategories.length > 0 ? Math.max(...investmentCategories.map(c => c.id)) + 1 : 300;
+    investmentCategories.push({ id: newId, name, color: selectedInvestmentColor, budgeted });
+  }
+  await dbSetMeta('investmentCategories', investmentCategories);
+  closeInvestmentCatModal();
+  renderSettings();
+  renderInvestmentCatPills(null);
+}
+
+async function updateInvestmentBudget(id, val) {
+  const c = investmentCategories.find(c => c.id === id);
+  if (c) { c.budgeted = parseFloat(val) || 0; }
+  await dbSetMeta('investmentCategories', investmentCategories);
+  flashSaved();
+}
+
+async function deleteInvestmentCat(id) {
+  investmentCategories = investmentCategories.filter(c => c.id !== id);
+  await dbSetMeta('investmentCategories', investmentCategories);
+  renderSettings();
+}
+
+document.getElementById('investmentCatModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeInvestmentCatModal();
+});
+
 function openAddIncomeCat() {
   editingIncomeCatId = null;
   document.getElementById('incomeCatModalTitle').textContent = 'New income category';
@@ -2793,7 +3795,7 @@ function openAddIncomeCat() {
 }
 
 function openEditIncomeCat(id) {
-  const cat = incomeCategories.find(c => c.id === id);
+  const cat = settingsIncomeCategories.find(c => c.id === id);
   if (!cat) return;
   editingIncomeCatId = id;
   document.getElementById('incomeCatModalTitle').textContent = 'Edit income category';
@@ -2811,7 +3813,7 @@ function closeIncomeCatModal() {
 let selectedIncomeColor = PALETTE[0];
 
 function buildIncomeCatColorPicker(currentColor) {
-  const usedColors = new Set(incomeCategories.filter(c => c.color !== currentColor).map(c => c.color));
+  const usedColors = new Set(settingsIncomeCategories.filter(c => c.color !== currentColor).map(c => c.color));
   const el = document.getElementById('incomeCatColorPicker');
   const available = PALETTE.filter(c => !usedColors.has(c));
   const list = available.includes(currentColor) ? available : [currentColor, ...available];
@@ -2834,14 +3836,17 @@ async function saveIncomeCat() {
   if (!name) { alert('Please enter a category name.'); return; }
 
   if (editingIncomeCatId !== null) {
-    const cat = incomeCategories.find(c => c.id === editingIncomeCatId);
+    const cat = settingsIncomeCategories.find(c => c.id === editingIncomeCatId);
     if (cat) { cat.name = name; cat.color = selectedIncomeColor; }
-    await saveMonthIncomeCategories(currentSettingsKey(), incomeCategories);
+    await saveMonthIncomeCategories(currentSettingsKey(), settingsIncomeCategories);
   } else {
     const newCat = { id: nextIncomeCatId++, name, color: selectedIncomeColor };
-    incomeCategories.push(newCat);
-    await saveMonthIncomeCategories(currentSettingsKey(), incomeCategories);
+    settingsIncomeCategories.push(newCat);
+    await saveMonthIncomeCategories(currentSettingsKey(), settingsIncomeCategories);
     await dbSetMeta('nextIncomeCatId', nextIncomeCatId);
+  }
+  if (settingsMonth === currentMonth && settingsYear === currentYear) {
+    incomeCategories = [...settingsIncomeCategories];
   }
 
   closeIncomeCatModal();
@@ -2850,7 +3855,7 @@ async function saveIncomeCat() {
 }
 
 async function deleteIncomeCat(id) {
-  const cat = incomeCategories.find(c => c.id === id);
+  const cat = settingsIncomeCategories.find(c => c.id === id);
   if (!cat) return;
   const inUse = transactions.some(t => t.incomeCatId === id);
   if (!inUse) {
@@ -2872,8 +3877,11 @@ async function _doDeleteIncomeCat(id) {
       await dbPut('transactions', t);
     }
   }
-  incomeCategories = incomeCategories.filter(c => c.id !== id);
-  await saveMonthIncomeCategories(currentSettingsKey(), incomeCategories);
+  settingsIncomeCategories = settingsIncomeCategories.filter(c => c.id !== id);
+  await saveMonthIncomeCategories(currentSettingsKey(), settingsIncomeCategories);
+  if (settingsMonth === currentMonth && settingsYear === currentYear) {
+    incomeCategories = [...settingsIncomeCategories];
+  }
   renderIncomeCatRows();
   flashSaved();
 }
