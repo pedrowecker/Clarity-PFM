@@ -1110,6 +1110,10 @@ function currentSettingsKey() {
   return settingsMonthKey(settingsMonth, settingsYear);
 }
 
+function currentBudgetKey() {
+  return settingsMonthKey(currentMonth, currentYear);
+}
+
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -1378,7 +1382,7 @@ async function initApp() {
     await openDB();
 
     // Carrega categorias — agora por mês
-    const currentMonthKey = currentSettingsKey();
+    const currentMonthKey = currentBudgetKey();
     const storedMonthCats = await loadMonthCategories(currentMonthKey);
 
     if (storedMonthCats !== null) {
@@ -1615,17 +1619,12 @@ async function changeMonth(dir) {
   if (currentMonth > 11) { currentMonth = 0; currentYear++; }
   if (currentMonth < 0)  { currentMonth = 11; currentYear--; }
 
-  // Load categories for this budget month — always reset to avoid bleeding between months
+  // Load categories for this budget month — independent from settings month
   const key = settingsMonthKey(currentMonth, currentYear);
   const monthCats = await loadMonthCategories(key);
   const monthIncomeCats = await loadMonthIncomeCategories(key);
   categories       = monthCats       !== null ? monthCats       : [];
   incomeCategories = monthIncomeCats !== null ? monthIncomeCats : [];
-
-  // Sync settings month to budget month
-  settingsMonth = currentMonth;
-  settingsYear  = currentYear;
-  updateSettingsMonthLabel();
 
   render();
   if (document.getElementById('view-reports').classList.contains('active')) renderReports();
