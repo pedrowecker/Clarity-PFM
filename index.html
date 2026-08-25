@@ -549,7 +549,7 @@
         <div class="sum-card">
           <div class="sum-label">Balance</div>
           <div class="sum-val" id="totalRemaining">€0</div>
-          <div class="sum-sub">Current balance</div>
+          <div class="sum-sub">After expenses, savings &amp; investments</div>
         </div>
       </div>
       <div class="categories-header">
@@ -2591,7 +2591,8 @@ function renderTxns() {
   let list = monthlyTxns().filter(t => {
     if (search && !t.payee.toLowerCase().includes(search)) return false;
     if (activeTypeFilters.size > 0 && !activeTypeFilters.has(t.type)) return false;
-    if (activeCatFilters.size > 0 && !activeCatFilters.has(String(t.catId))) return false;
+    if (activeCatFilters.size > 0 && !activeCatFilters.has(String(t.catId)) && !activeCatFilters.has(String(t.incomeCatId))) return false;
+    if (activeAccFilters.size > 0 && !activeAccFilters.has(String(t.accountId))) return false;
     return true;
   }).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -3466,7 +3467,10 @@ async function updateBudget(id, val) {
   const cat = settingsCategories.find(c => c.id === id);
   if (cat) {
     cat.budgeted = parseFloat(val) || 0;
-    await saveMonthCategories(currentSettingsKey(), categories);
+    await saveMonthCategories(currentSettingsKey(), settingsCategories);
+    if (settingsMonth === currentMonth && settingsYear === currentYear) {
+      categories = [...settingsCategories];
+    }
     render();
     flashSaved();
   }
@@ -4431,6 +4435,7 @@ async function updateInvestmentBudget(id, val) {
   const c = investmentCategories.find(c => c.id === id);
   if (c) { c.budgeted = parseFloat(val) || 0; }
   await saveMonthInvestmentCategories(currentSettingsKey(), investmentCategories);
+  if (settingsMonth === currentMonth && settingsYear === currentYear) render();
   flashSaved();
 }
 
