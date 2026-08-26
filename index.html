@@ -2330,9 +2330,10 @@ async function initApp() {
     try {
       const storedAccounts = await dbGetAll('accounts');
       const accountOrder = await dbGetMeta('accountOrder');
-      if (accountOrder && Array.isArray(accountOrder)) {
-        accounts = accountOrder.map(id => storedAccounts.find(a => a.id === id)).filter(Boolean);
-        storedAccounts.forEach(a => { if (!accounts.find(x => x.id === a.id)) accounts.push(a); });
+      if (accountOrder && Array.isArray(accountOrder) && accountOrder.length > 0) {
+        const ordered = accountOrder.map(id => storedAccounts.find(a => a.id === id)).filter(Boolean);
+        const rest = storedAccounts.filter(a => !accountOrder.includes(a.id));
+        accounts = [...ordered, ...rest];
       } else {
         accounts = storedAccounts || [];
       }
@@ -3590,6 +3591,9 @@ function setType(t, selectedCatId) {
   if (t === 'income')     renderIncomeCatPills(selectedCatId ?? null);
   if (t === 'saving')     renderSavingCatPills(selectedCatId ?? null);
   if (t === 'investment') renderInvestmentCatPills(selectedCatId ?? null);
+  // Re-render account pills to apply type-based filter
+  const currentAccId = parseInt(document.getElementById('txnAccount').value) || null;
+  renderAccountPills(currentAccId);
   updateTxnHero();
 }
 
@@ -3634,7 +3638,16 @@ function renderAccountPills(selectedId) {
     wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">${t('noAccountsDefinedSettings')}</span>`;
     return;
   }
-  wrap.innerHTML = accounts.map(acc => {
+  let filtered = accounts;
+  if (txnType === 'expense')    filtered = accounts.filter(a => a.type === 'checking');
+  if (txnType === 'saving')     filtered = accounts.filter(a => a.type === 'checking' || a.type === 'savings' || a.type === 'saving');
+  if (txnType === 'investment') filtered = accounts.filter(a => a.type === 'investment');
+  if (filtered.length === 0) {
+    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">${t('noAccountsDefinedSettings')}</span>`;
+    document.getElementById('txnAccount').value = '';
+    return;
+  }
+  wrap.innerHTML = filtered.map(acc => {
     const b = allBanks().find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff' };
     const tc = b.textColor || '#fff';
     const sel = selectedId == acc.id;
