@@ -489,9 +489,9 @@
       <span>Clarity</span>
     </div>
     <nav class="pill-nav">
-      <button class="pill-btn active" onclick="showView('budget', this)">Budget</button>
-      <button class="pill-btn" onclick="showView('transactions', this)">Transactions</button>
-      <button class="pill-btn" onclick="showView('reports', this)">Dashboard</button>
+      <button class="pill-btn active" id="navBtnBudget" onclick="showView('budget', this)">Budget</button>
+      <button class="pill-btn" id="navBtnTxns" onclick="showView('transactions', this)">Transactions</button>
+      <button class="pill-btn" id="navBtnDash" onclick="showView('reports', this)">Dashboard</button>
     </nav>
     <div class="topbar-center" id="topbarMonthNav" style="display:flex;align-items:center;gap:0;position:absolute;left:50%;transform:translateX(-50%)">
       <button class="month-btn" onclick="changeMonth(-1)">&#8249;</button>
@@ -522,47 +522,47 @@
     <!-- Budget -->
     <div class="view active" id="view-budget">
       <div class="page-header">
-        <div class="page-title">Budget</div>
-        <div class="page-sub">Give every euro a job.</div>
+        <div class="page-title" id="pageTitleBudget">Budget</div>
+        <div class="page-sub" id="pageSubBudget">Give every euro a job.</div>
       </div>
       <div class="summary-row" style="grid-template-columns: repeat(4, 1fr)" id="budgetSummaryRow">
         <div class="sum-card">
-          <div class="sum-label">Income this month</div>
+          <div class="sum-label" id="sumLabelIncome">Income this month</div>
           <div class="sum-val green" id="totalIncome">€0</div>
-          <div class="sum-sub">All sources combined</div>
+          <div class="sum-sub" id="sumSubIncome">All sources combined</div>
         </div>
         <div class="sum-card">
-          <div class="sum-label">Spent so far</div>
+          <div class="sum-label" id="sumLabelSpent">Spent so far</div>
           <div class="sum-val red" id="totalSpent">€0</div>
-          <div class="sum-sub">Across all categories</div>
+          <div class="sum-sub" id="sumSubSpent">Across all categories</div>
         </div>
         <div class="sum-card">
-          <div class="sum-label">Saved this month</div>
+          <div class="sum-label" id="sumLabelSaved">Saved this month</div>
           <div class="sum-val accent" id="totalSaved">€0</div>
           <div class="sum-sub" id="totalSavedSub">Across savings categories</div>
         </div>
         <div class="sum-card" id="totalInvestedCard" style="display:none">
-          <div class="sum-label">Invested this month</div>
+          <div class="sum-label" id="sumLabelInvested">Invested this month</div>
           <div class="sum-val accent" id="totalInvested">€0</div>
           <div class="sum-sub" id="totalInvestedSub">—</div>
         </div>
         <div class="sum-card">
-          <div class="sum-label">Balance</div>
+          <div class="sum-label" id="sumLabelBalance">Balance</div>
           <div class="sum-val" id="totalRemaining">€0</div>
-          <div class="sum-sub">After expenses, savings &amp; investments</div>
+          <div class="sum-sub" id="balanceSubEl">After expenses, savings &amp; investments</div>
         </div>
       </div>
       <div class="categories-header">
-        <span class="section-title" style="color:var(--text);text-transform:none;font-size:13px;font-weight:600;letter-spacing:normal">Spending categories</span>
-        <button class="btn btn-primary" onclick="openAddTxn()">+ Add transaction</button>
+        <span class="section-title" style="color:var(--text);text-transform:none;font-size:13px;font-weight:600;letter-spacing:normal" id="sectionSpending">Spending categories</span>
+        <button class="btn btn-primary" onclick="openAddTxn()" id="addTxnBtn">+ Add transaction</button>
       </div>
       <table class="cat-table" style="margin-bottom:24px;table-layout:fixed">
         <colgroup>
           <col style="width:180px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:160px"><col style="width:110px">
         </colgroup>
         <thead>
-          <tr>
-            <th>Category</th>
+          <tr id="thRowSpend">
+            <th >Category</th>
             <th style="text-align:right">Budget</th>
             <th style="text-align:right">Spent</th>
             <th style="text-align:right">Available</th>
@@ -575,15 +575,15 @@
       </table>
 
       <div class="categories-header" style="margin-top:8px">
-        <span class="section-title" style="color:var(--text);text-transform:none;font-size:13px;font-weight:600;letter-spacing:normal">Savings categories</span>
+        <span class="section-title" style="color:var(--text);text-transform:none;font-size:13px;font-weight:600;letter-spacing:normal" id="sectionSavings">Savings categories</span>
       </div>
       <table class="cat-table" style="table-layout:fixed">
         <colgroup>
           <col style="width:180px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:160px"><col style="width:110px">
         </colgroup>
         <thead>
-          <tr>
-            <th>Category</th>
+          <tr id="thRowSave">
+            <th >Category</th>
             <th style="text-align:right">Budget</th>
             <th style="text-align:right">Saved</th>
             <th style="text-align:right">Remaining</th>
@@ -596,15 +596,15 @@
       </table>
 
       <div class="categories-header" style="margin-top:24px" id="investBudgetSection">
-        <span class="section-title" style="color:var(--text);text-transform:none;font-size:13px;font-weight:600;letter-spacing:normal">Investment categories</span>
+        <span class="section-title" style="color:var(--text);text-transform:none;font-size:13px;font-weight:600;letter-spacing:normal" id="sectionInvestment">Investment categories</span>
       </div>
       <table class="cat-table" style="table-layout:fixed" id="investBudgetTable">
         <colgroup>
           <col style="width:180px"><col style="width:90px"><col style="width:90px"><col style="width:90px"><col style="width:160px"><col style="width:110px">
         </colgroup>
         <thead>
-          <tr>
-            <th>Category</th>
+          <tr id="thRowInvest">
+            <th >Category</th>
             <th style="text-align:right">Budget</th>
             <th style="text-align:right">Invested</th>
             <th style="text-align:right">Remaining</th>
@@ -621,8 +621,8 @@
     <div class="view" id="view-transactions">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
         <div>
-          <div class="page-title">Transactions</div>
-          <div class="page-sub">Everything in and out.</div>
+          <div class="page-title" id="pageTitleTxns">Transactions</div>
+          <div class="page-sub" id="pageSubTxns">Everything in and out.</div>
         </div>
       </div>
 
@@ -695,11 +695,11 @@
           <col style="width:72px">
         </colgroup>
         <thead>
-          <tr>
+          <tr id="thRowTxn">
             <th>Date</th>
             <th>Description</th>
             <th>Type</th>
-            <th>Category</th>
+            <th >Category</th>
             <th>Account</th>
             <th style="text-align:right">Amount</th>
             <th style="width:72px"></th>
@@ -717,12 +717,12 @@
           <div class="page-title">Dashboard</div>
           <div class="page-sub" id="todayLabel">See where your money goes.</div>
         </div>
-        <button class="btn btn-primary" onclick="openAllTime()" style="display:flex;align-items:center;gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> All time</button>
+        <button class="btn btn-primary" onclick="openAllTime()" id="allTimeBtn" style="display:flex;align-items:center;gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> All time</button>
       </div>
       <div class="summary-row" id="dashSummaryRow" style="grid-template-columns: repeat(5, 1fr)">
         <!-- Card 1: vs. last month -->
         <div class="sum-card">
-          <div class="sum-label">vs. Last month</div>
+          <div class="sum-label" id="kpiLabelVsLast">vs. Last month</div>
           <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
             <div style="display:flex;align-items:center;justify-content:space-between">
               <span style="font-size:11px;color:var(--text-3);font-weight:500">Income</span>
@@ -737,32 +737,32 @@
         </div>
         <!-- Card 2: Expense ratio -->
         <div class="sum-card">
-          <div class="sum-label">Expense ratio</div>
+          <div class="sum-label" id="kpiLabelRatio">Expense ratio</div>
           <div class="sum-val" id="r-expense-ratio">0%</div>
-          <div class="sum-sub">Of income going to expenses</div>
+          <div class="sum-sub" id="r-expense-ratio-sub">Of income going to expenses</div>
         </div>
         <!-- Card 3: Savings rate -->
         <div class="sum-card">
-          <div class="sum-label">Savings rate</div>
+          <div class="sum-label" id="kpiLabelRate">Savings rate</div>
           <div class="sum-val accent" id="r-rate">0%</div>
-          <div class="sum-sub">Of income saved this month</div>
+          <div class="sum-sub" id="r-rate-sub">Of income saved this month</div>
         </div>
         <!-- Card 4: Top spending category -->
         <div class="sum-card">
-          <div class="sum-label">Top expense</div>
+          <div class="sum-label" id="kpiLabelTop">Top expense</div>
           <div class="sum-val" id="r-top-cat" style="font-size:18px;letter-spacing:-0.5px">—</div>
           <div class="sum-sub" id="r-top-cat-sub">Biggest spending category</div>
         </div>
         <!-- Card 5: Expense-free days -->
         <div class="sum-card">
-          <div class="sum-label">No-spend days</div>
+          <div class="sum-label" id="kpiLabelNospend">No-spend days</div>
           <div class="sum-val accent" id="r-nospend-days">0</div>
           <div class="sum-sub" id="r-nospend-sub">Days with no expenses this month</div>
         </div>
       </div>
       <div class="charts-grid">
         <div class="chart-card" style="grid-row:span 2;display:flex;flex-direction:column">
-          <div class="chart-title">Total outflows</div>
+          <div class="chart-title" id="chartTitleOutflows">Total outflows</div>
           <div id="outflowChips" style="display:flex;gap:6px;justify-content:center;margin:0 0 12px;flex-wrap:wrap"></div>
           <div style="flex:1;display:flex;flex-direction:column;gap:20px;align-items:center;justify-content:center">
             <div style="position:relative;flex-shrink:0">
@@ -777,20 +777,20 @@
           </div>
         </div>
         <div class="chart-card">
-          <div class="chart-title">Income by source</div>
+          <div class="chart-title" id="chartTitleIncome">Income by source</div>
           <div id="incomeLegend" style="display:flex;flex-direction:column;gap:0;min-width:0"></div>
         </div>
         <div class="chart-card">
-          <div class="chart-title">Balance by account</div>
+          <div class="chart-title" id="chartTitleBalance">Balance by account</div>
           <div id="accountBalanceLegend" style="display:flex;flex-direction:column;gap:0;min-width:0"></div>
         </div>
         <div class="chart-card full-width">
-          <div class="chart-title">Budgeted vs. real</div>
+          <div class="chart-title" id="chartTitleBvr">Budgeted vs. real</div>
           <div id="bvrChips" style="display:flex;gap:6px;justify-content:center;margin:10px 0 14px"></div>
           <div class="chart-wrap"><canvas id="barChart"></canvas></div>
         </div>
         <div class="chart-card full-width">
-          <div class="chart-title">Daily spending this month</div>
+          <div class="chart-title" id="chartTitleDaily">Daily spending this month</div>
           <div class="chart-wrap" style="height:180px"><canvas id="lineChart"></canvas></div>
         </div>
       </div>
@@ -799,22 +799,36 @@
     <!-- Clarity Settings -->
     <div class="view" id="view-settings">
       <div class="page-header">
-        <div class="page-title">Clarity Settings</div>
-        <div class="page-sub">Accounts, budgets and data.</div>
+        <div class="page-title" id="settingsPageTitle">Clarity Settings</div>
+        <div class="page-sub" id="settingsPageSub">Accounts, budgets and data.</div>
+      </div>
+
+      <!-- ── BLOCK 0: Language ── -->
+      <div class="settings-block" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:14px;font-weight:500;color:var(--text)" id="langBlockTitle">Language</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px" id="langBlockSub">Interface language</div>
+          </div>
+          <div style="display:flex;gap:6px;background:var(--surface-3,#F0EEE8);border-radius:8px;padding:3px">
+            <button id="langBtnEn" onclick="setLanguage('en')" style="padding:5px 16px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);background:white;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.1);transition:all 0.12s">English</button>
+            <button id="langBtnPt" onclick="setLanguage('pt')" style="padding:5px 16px;border-radius:6px;border:none;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);background:transparent;color:var(--text-3);transition:all 0.12s">Português</button>
+          </div>
+        </div>
       </div>
 
       <!-- ── BLOCK 1: Accounts ── -->
       <div class="settings-block" style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
           <div>
-            <div style="font-size:14px;font-weight:500;color:var(--text)">Accounts</div>
-            <div style="font-size:11px;color:var(--text-3);margin-top:2px">Setup your bank accounts</div>
+            <div style="font-size:14px;font-weight:500;color:var(--text)" id="settingsAccountsTitle">Accounts</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px" id="settingsAccountsSub">Setup your bank accounts</div>
           </div>
-          <button class="btn btn-primary" onclick="openAddAccount()">+ New account</button>
+          <button class="btn btn-primary" onclick="openAddAccount()" id="settingsNewAccountBtn">+ New account</button>
         </div>
         <table class="cat-table" style="width:100%">
           <thead style="background:#EFEFEC">
-            <tr>
+            <tr id="thRowAccounts">
               <th style="width:32px"></th>
               <th style="text-align:left;padding-left:16px">Name</th>
               <th style="text-align:left">Bank</th>
@@ -830,8 +844,8 @@
       <div class="settings-block" style="margin-bottom:12px">
         <div style="margin-bottom:20px">
           <div style="margin-bottom:14px">
-            <div style="font-size:14px;font-weight:500;color:var(--text)">Budget settings</div>
-            <div style="font-size:11px;color:var(--text-3);margin-top:2px">Categories and budgets per month</div>
+            <div style="font-size:14px;font-weight:500;color:var(--text)" id="settingsBudgetTitle">Budget settings</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px" id="settingsBudgetSub">Categories and budgets per month</div>
           </div>
           <div style="display:flex;align-items:center;justify-content:flex-start;gap:8px">
             <div style="display:flex;align-items:center;gap:0;background:#FFFFFF;border:0.5px solid var(--border);border-radius:8px;padding:3px">
@@ -846,7 +860,7 @@
         <!-- Spending -->
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
           <span style="font-size:13px;font-weight:400;color:var(--text)">Spending categories</span>
-          <button class="btn btn-primary" onclick="openAddCat(false)">+ New category</button>
+          <button class="btn btn-primary" onclick="openAddCat(false)" id="newCatBtnSpend">+ New category</button>
         </div>
         <table class="cat-table" style="width:100%">
           <colgroup><col style="width:36px"><col><col style="width:160px"><col style="width:70px"><col style="width:80px"></colgroup>
@@ -859,7 +873,7 @@
         <!-- Savings -->
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
           <span style="font-size:13px;font-weight:400;color:var(--text)">Savings categories</span>
-          <button class="btn btn-primary" onclick="openAddCat(true)">+ New category</button>
+          <button class="btn btn-primary" onclick="openAddCat(true)" id="newCatBtnSave">+ New category</button>
         </div>
         <table class="cat-table" style="width:100%">
           <colgroup><col style="width:36px"><col><col style="width:160px"><col style="width:70px"><col style="width:80px"></colgroup>
@@ -872,7 +886,7 @@
         <!-- Investment categories -->
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
           <span style="font-size:13px;font-weight:400;color:var(--text)">Investment categories</span>
-          <button class="btn btn-primary" onclick="openAddInvestmentCat()">+ New category</button>
+          <button class="btn btn-primary" onclick="openAddInvestmentCat()" id="newCatBtnInvest">+ New category</button>
         </div>
         <table class="cat-table" style="width:100%">
           <colgroup><col style="width:36px"><col><col style="width:160px"><col style="width:70px"><col style="width:80px"></colgroup>
@@ -885,7 +899,7 @@
         <!-- Income -->
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
           <span style="font-size:13px;font-weight:400;color:var(--text)">Income categories</span>
-          <button class="btn btn-primary" onclick="openAddIncomeCat()">+ New category</button>
+          <button class="btn btn-primary" onclick="openAddIncomeCat()" id="newCatBtnIncome">+ New category</button>
         </div>
         <table class="cat-table" style="width:100%">
           <colgroup><col style="width:36px"><col><col style="width:70px"><col style="width:80px"></colgroup>
@@ -899,8 +913,8 @@
         <button onclick="toggleAdvanced()" id="advancedToggleBtn"
           style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;font-family:var(--font);padding:0">
           <div>
-            <div style="font-size:14px;font-weight:500;color:var(--text);text-align:left">Advanced settings</div>
-            <div style="font-size:11px;color:var(--text-3);margin-top:2px;text-align:left">Export, backup and restore</div>
+            <div style="font-size:14px;font-weight:500;color:var(--text);text-align:left" id="settingsAdvancedTitle">Advanced settings</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px;text-align:left" id="settingsAdvancedSub">Export, backup and restore</div>
           </div>
           <span id="advancedChevron" style="font-size:13px;color:var(--text-3);transition:transform 0.2s">▼</span>
         </button>
@@ -908,15 +922,15 @@
           <div style="border-top:0.5px solid var(--border);padding-top:16px">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--border)">
               <div>
-                <div style="font-size:13px;color:var(--text)">Export to Excel</div>
-                <div style="font-size:11px;color:var(--text-3);margin-top:2px">Transactions + summary · all months</div>
+                <div style="font-size:13px;color:var(--text)" id="advExportTitle">Export to Excel</div>
+                <div style="font-size:11px;color:var(--text-3);margin-top:2px" id="advExportSub">Transactions + summary · all months</div>
               </div>
-              <button class="btn btn-outline" onclick="exportToExcel()" style="display:flex;align-items:center;gap:6px"><span>↓</span> Export to Excel</button>
+              <button class="btn btn-outline" onclick="exportToExcel()" id="advExportBtn" style="display:flex;align-items:center;gap:6px"><span>↓</span> Export to Excel</button>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
               <div>
-                <div style="font-size:13px;color:var(--text)">Backup and restore</div>
-                <div style="font-size:11px;color:var(--text-3);margin-top:2px">Data is stored locally in your browser.</div>
+                <div style="font-size:13px;color:var(--text)" id="advBackupTitle">Backup and restore</div>
+                <div style="font-size:11px;color:var(--text-3);margin-top:2px" id="advBackupSub">Data is stored locally in your browser.</div>
                 <span id="dbInfo" style="display:block;margin-top:4px;font-size:11px;color:var(--text-3)"></span>
               </div>
               <div style="display:flex;gap:8px">
@@ -1240,7 +1254,7 @@
   <div class="modal" style="width:1115px; max-height:97vh; overflow-y:auto; background:var(--bg, #F4F3F0); padding:24px; border-radius:20px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
       <div style="display:flex;align-items:center;gap:12px;">
-        <div class="modal-title" style="margin-bottom:0">🌐 All time overview</div>
+        <div class="modal-title" style="margin-bottom:0" id="atModalTitle">🌐 All time overview</div>
         <span style="font-size:11px;color:var(--text-3)">—</span>
         <div id="atTimeChips" style="display:flex;gap:4px;padding:3px;"></div>
       </div>
@@ -1248,19 +1262,19 @@
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; margin-bottom:12px;">
       <div class="sum-card" style="padding:14px 16px;">
-        <div class="sum-label">Total income</div>
+        <div class="sum-label" id="atLabelIncome">Total income</div>
         <div class="sum-val green" id="at-income" style="font-size:18px">€0</div>
       </div>
       <div class="sum-card" style="padding:14px 16px;">
-        <div class="sum-label">Total spent</div>
+        <div class="sum-label" id="atLabelSpent">Total spent</div>
         <div class="sum-val red" id="at-spent" style="font-size:18px">€0</div>
       </div>
       <div class="sum-card" style="padding:14px 16px;">
-        <div class="sum-label">Total saved</div>
+        <div class="sum-label" id="atLabelSaved">Total saved</div>
         <div class="sum-val" id="at-saved" style="font-size:18px;color:var(--accent)">€0</div>
       </div>
       <div class="sum-card" style="padding:14px 16px;">
-        <div class="sum-label">Total invested</div>
+        <div class="sum-label" id="atLabelInvested">Total invested</div>
         <div class="sum-val" id="at-invested" style="font-size:18px;color:#2563EB">€0</div>
       </div>
     </div>
@@ -1272,7 +1286,7 @@
       <table style="width:100%; border-collapse:collapse;" id="at-cat-table"></table>
     </div>
     <div style="background:#FFFFFF;border:1px solid var(--border);border-radius:14px;padding:20px;">
-      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-3);margin-bottom:14px;">Monthly breakdown</div>
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-3);margin-bottom:14px;" id="atMonthTitle">Monthly breakdown</div>
       <table style="width:100%; border-collapse:collapse;" id="at-month-table"></table>
     </div>
   </div>
@@ -1292,6 +1306,488 @@
 // ═══════════════════════════════════════════════════════════════════
 
 const COLORS = ['#2D42B0','#15803D','#B45309','#B91C1C','#7C3AED','#0E7490','#BE185D','#4D7C0F'];
+
+// ── Language ──────────────────────────────────────────────────────
+let appLang = 'en';
+
+const TRANSLATIONS = {
+  en: {
+    // Nav
+    budget: 'Budget', transactions: 'Transactions', dashboard: 'Dashboard',
+    // Budget view
+    budgetTitle: 'Budget', budgetSub: 'Give every euro a job.',
+    incomeThisMonth: 'Income this month', spentSoFar: 'Spent so far',
+    savedThisMonth: 'Saved this month', investedThisMonth: 'Invested this month',
+    balance: 'Balance', balanceSub: 'After expenses, savings & investments',
+    allSourcesCombined: 'All sources combined', acrossAllCategories: 'Across all categories',
+    acrossSavingsCategories: 'Across savings categories', noSavingsCategoriesSet: 'No savings categories set',
+    noBudgetSet: 'No budget set',
+    spendingCategories: 'Spending categories', savingsCategories: 'Savings categories',
+    investmentCategories: 'Investment categories',
+    addTransaction: '+ Add transaction',
+    category: 'Category', budgetCol: 'Budget', spent: 'Spent', saved: 'Saved',
+    available: 'Available', remaining: 'Remaining', progress: 'Progress', status: 'Status',
+    invested: 'Invested', total: 'Total',
+    onTrack: 'On track', nearlyFull: 'Nearly full', overBudget: 'Over budget', goalMet: 'Goal met',
+    inProgress: 'In progress', notSaved: 'Not saved',
+    // Transactions
+    transactionsTitle: 'Transactions', transactionsSub: 'Everything in and out.',
+    searchDescription: 'Search description...',
+    type: 'Type', account: 'Account', date: 'Date', description: 'Description', amount: 'Amount',
+    // Dashboard
+    dashboardTitle: 'Dashboard', vsLastMonth: 'vs. Last month',
+    expenseRatio: 'Expense ratio', savingsRate: 'Savings rate',
+    topExpense: 'Top expense', noSpendDays: 'No-spend days',
+    totalOutflows: 'Total outflows', incomeBySource: 'Income by source',
+    balanceByAccount: 'Balance by account', budgetedVsReal: 'Budgeted vs. real',
+    dailySpending: 'Daily spending this month',
+    allTime: 'All time',
+    // Settings
+    settingsTitle: 'Clarity Settings', settingsSub: 'Accounts, budgets and data.',
+    language: 'Language', interfaceLanguage: 'Interface language',
+    accounts: 'Accounts', setupBankAccounts: 'Setup your bank accounts',
+    newAccount: '+ New account',
+    budgetSettings: 'Budget settings', categoriesPerMonth: 'Categories and budgets per month',
+    advancedSettings: 'Advanced settings', exportBackupRestore: 'Export, backup and restore',
+    spending: 'Spending', saving: 'Saving', investment: 'Investment', income: 'Income',
+    all: 'All',
+    // Status pills
+    onTrack: 'On track', nearlyFull: 'Nearly full', overBudget: 'Over budget', goalMet: 'Goal met',
+    inProgress: 'In progress', notSaved: 'Not saved', notInvested: 'Not invested',
+    withdrawn: 'Withdrawn', budgetHit: 'Budget hit', noBudget: 'No budget',
+    // Colour / action
+    colour: 'Colour', action: 'Action', total: 'Total',
+    // Empty states
+    noTransactionsFound: 'No transactions found.',
+    noTransactionsThisMonth: 'No transactions this month.',
+    noTransactions: 'No transactions',
+    noAccountsDefined: 'No accounts defined.',
+    noAccountsDefinedSettings: 'No accounts defined. Add one in Settings.',
+    noCategoriesForType: 'No categories for this type.',
+    noCategoriesYet: 'No categories yet. Click \"+ New category\" to add one.',
+    noAccountsYet: 'No accounts yet. Click \"+ New account\" to add one.',
+    noOutflowsRecordedYet: 'No outflows recorded yet.',
+    noSpendingYet: 'No spending yet.',
+    noIncomeRecordedYet: 'No income recorded yet.',
+    noAccountsDefinedYet: 'No accounts defined yet.',
+    noExpenseCategoriesSettings: 'No expense categories. Add one in Settings.',
+    noSavingsCategoriesSettings: 'No savings categories. Add one in Settings.',
+    noIncomeCategoriesSettings: 'No income categories. Add one in Settings.',
+    noInvestmentCategoriesSettings: 'No investment categories. Add one in Settings.',
+    // Dashboard subs
+    ofIncomeGoingToExpenses: 'Of income going to expenses',
+    ofIncomeSavedThisMonth: 'Of income saved this month',
+    biggestSpendingCategory: 'Biggest spending category',
+    outOf: 'Out of', daysSoFar: 'days so far',
+    noExpensesYet: 'No expenses yet', thisMonth: 'this month',
+    noTransactionsThisMonthSub: 'No transactions this month',
+    // Modals
+    saveTransaction: 'Save transaction', updateTransaction: 'Update transaction',
+    expenseToday: 'Expense · today',
+    newSpendingCategory: 'New spending category', newSavingsCategory: 'New savings category',
+    editSpendingCategory: 'Edit spending category', editSavingsCategory: 'Edit savings category',
+    newInvestmentCategory: 'New investment category', editInvestmentCategory: 'Edit investment category',
+    newIncomeCategory: 'New income category', editIncomeCategory: 'Edit income category',
+    saveCategory: 'Save category', saveChanges: 'Save changes',
+    monthlyBudget: 'Monthly budget (€)',
+    newAccount2: 'New account', editAccount: 'Edit account',
+    bankName: 'Bank name',
+    cancel: 'Cancel', confirm: 'Confirm',
+    // Transaction modal fields
+    expense: 'Expense', saving: 'Saving',
+    addFunds: '↓ Add funds', withdrawBtn: '↑ Withdraw',
+    dateLabel: 'Date', descriptionLabel: 'Description', accountLabel: 'Account',
+    expenseCategory: 'Expense category', savingsCategory2: 'Savings category',
+    incomeCategory2: 'Income category', investmentCategory2: 'Investment category',
+    // Table headers — budget
+    categoryHeader: 'Category', budgetHeader: 'Budget', spentHeader: 'Spent',
+    availableHeader: 'Available', progressHeader: 'Progress', statusHeader: 'Status',
+    savedHeader: 'Saved', remainingHeader: 'Remaining', investedHeader: 'Invested',
+    // Table headers — settings
+    budgetEurHeader: 'Budget (€)', colourHeader: 'Colour', actionHeader: 'Action',
+    newCategory: '+ New category',
+    // Accounts table headers
+    nameHeader: 'Name', bankHeader: 'Bank', typeHeader: 'Type',
+    // Advanced settings content
+    exportToExcel: 'Export to Excel', exportToExcelSub: 'Transactions + summary · all months',
+    backupAndRestore: 'Backup and restore', dataStoredLocally: 'Data is stored locally in your browser.',
+    backupBtn: '↓ Backup', restoreBtn: '↑ Restore',
+    // Empty states (dynamic JS)
+    noCategoriesYetMsg: '+ New category',
+    // Account type buttons
+    checking: 'Checking', savings2: 'Savings',
+    // Autosave
+    autosaveOn: 'Autosave on', updated: 'Updated',
+    // Settings extras
+    budgetEur: 'Budget (€)', usePastMonthCategories: '↵ Use past month categories',
+    // All time
+    allTimeOverview: 'All time overview', monthlyBreakdown: 'Monthly breakdown',
+    spendingByCategory: 'Spending by category',
+    totalIncome: 'Total income', totalSpent: 'Total spent',
+    totalSaved: 'Total saved', totalInvested: 'Total invested',
+    incomeByCategory: 'Income by category', expensesByCategory: 'Expenses by category',
+    savedByCategory: 'Saved by category', withdrawnByCategory: 'Withdrawn by category',
+    month: 'Month', income: 'Income',
+    todayIs: 'Today is', noDataYet: 'No data yet.',
+  },
+  pt: {
+    // Nav
+    budget: 'Orçamento', transactions: 'Transações', dashboard: 'Dashboard',
+    // Budget view
+    budgetTitle: 'Orçamento', budgetSub: 'Dá um destino a cada euro.',
+    incomeThisMonth: 'Rendimento este mês', spentSoFar: 'Gasto até agora',
+    savedThisMonth: 'Poupado este mês', investedThisMonth: 'Investido este mês',
+    balance: 'Saldo', balanceSub: 'Após despesas, poupanças e investimentos',
+    allSourcesCombined: 'Todas as fontes', acrossAllCategories: 'Em todas as categorias',
+    acrossSavingsCategories: 'Em categorias de poupança', noSavingsCategoriesSet: 'Sem categorias de poupança',
+    noBudgetSet: 'Sem orçamento definido',
+    spendingCategories: 'Categorias de despesa', savingsCategories: 'Categorias de poupança',
+    investmentCategories: 'Categorias de investimento',
+    addTransaction: '+ Adicionar transação',
+    category: 'Categoria', budgetCol: 'Orçamento', spent: 'Gasto', saved: 'Poupado',
+    available: 'Disponível', remaining: 'Restante', progress: 'Progresso', status: 'Estado',
+    invested: 'Investido', total: 'Total',
+    onTrack: 'No plano', nearlyFull: 'Quase no limite', overBudget: 'Acima do orçamento', goalMet: 'Objetivo atingido',
+    inProgress: 'Em progresso', notSaved: 'Não poupado',
+    // Transactions
+    transactionsTitle: 'Transações', transactionsSub: 'Tudo o que entra e sai.',
+    searchDescription: 'Pesquisar descrição...',
+    type: 'Tipo', account: 'Conta', date: 'Data', description: 'Descrição', amount: 'Valor',
+    // Dashboard
+    dashboardTitle: 'Dashboard', vsLastMonth: 'vs. Mês anterior',
+    expenseRatio: 'Rácio de despesas', savingsRate: 'Taxa de poupança',
+    topExpense: 'Maior despesa', noSpendDays: 'Dias sem gastos',
+    totalOutflows: 'Total de saídas', incomeBySource: 'Rendimento por fonte',
+    balanceByAccount: 'Saldo por conta', budgetedVsReal: 'Orçamentado vs. real',
+    dailySpending: 'Gastos diários este mês',
+    allTime: 'Desde sempre',
+    // Settings
+    settingsTitle: 'Definições', settingsSub: 'Contas, orçamentos e dados.',
+    language: 'Idioma', interfaceLanguage: 'Idioma da interface',
+    accounts: 'Contas', setupBankAccounts: 'Configura as tuas contas bancárias',
+    newAccount: '+ Nova conta',
+    budgetSettings: 'Definições de orçamento', categoriesPerMonth: 'Categorias e orçamentos por mês',
+    advancedSettings: 'Definições avançadas', exportBackupRestore: 'Exportar, backup e restauro',
+    spending: 'Despesas', saving: 'Poupança', investment: 'Investimento', income: 'Rendimento',
+    all: 'Tudo',
+    // Status pills
+    onTrack: 'No plano', nearlyFull: 'Quase no limite', overBudget: 'Acima do orçamento', goalMet: 'Objetivo atingido',
+    inProgress: 'Em progresso', notSaved: 'Não poupado', notInvested: 'Não investido',
+    withdrawn: 'Levantado', budgetHit: 'Limite atingido', noBudget: 'Sem orçamento',
+    // Colours / action
+    colour: 'Cor', action: 'Ação', total: 'Total',
+    // Empty states
+    noTransactionsFound: 'Nenhuma transação encontrada.',
+    noTransactionsThisMonth: 'Sem transações este mês.',
+    noTransactions: 'Sem transações',
+    noAccountsDefined: 'Sem contas definidas.',
+    noAccountsDefinedSettings: 'Sem contas definidas. Adiciona uma nas Definições.',
+    noCategoriesForType: 'Sem categorias para este tipo.',
+    noCategoriesYet: 'Sem categorias. Clica em \"+ Nova categoria\" para adicionar.',
+    noAccountsYet: 'Sem contas. Clica em \"+ Nova conta\" para adicionar.',
+    noOutflowsRecordedYet: 'Sem saídas registadas.',
+    noSpendingYet: 'Sem gastos ainda.',
+    noIncomeRecordedYet: 'Sem rendimento registado.',
+    noAccountsDefinedYet: 'Sem contas definidas ainda.',
+    noExpenseCategoriesSettings: 'Sem categorias de despesa. Adiciona nas Definições.',
+    noSavingsCategoriesSettings: 'Sem categorias de poupança. Adiciona nas Definições.',
+    noIncomeCategoriesSettings: 'Sem categorias de rendimento. Adiciona nas Definições.',
+    noInvestmentCategoriesSettings: 'Sem categorias de investimento. Adiciona nas Definições.',
+    // Dashboard subs
+    ofIncomeGoingToExpenses: 'Do rendimento em despesas',
+    ofIncomeSavedThisMonth: 'Do rendimento poupado este mês',
+    biggestSpendingCategory: 'Maior categoria de despesa',
+    outOf: 'De', daysSoFar: 'dias até agora',
+    noExpensesYet: 'Sem despesas ainda', thisMonth: 'este mês',
+    noTransactionsThisMonthSub: 'Sem transações este mês',
+    // Modals
+    saveTransaction: 'Guardar transação', updateTransaction: 'Atualizar transação',
+    expenseToday: 'Despesa · hoje',
+    newSpendingCategory: 'Nova categoria de despesa', newSavingsCategory: 'Nova categoria de poupança',
+    editSpendingCategory: 'Editar categoria de despesa', editSavingsCategory: 'Editar categoria de poupança',
+    newInvestmentCategory: 'Nova categoria de investimento', editInvestmentCategory: 'Editar categoria de investimento',
+    newIncomeCategory: 'Nova categoria de rendimento', editIncomeCategory: 'Editar categoria de rendimento',
+    saveCategory: 'Guardar categoria', saveChanges: 'Guardar alterações',
+    monthlyBudget: 'Orçamento mensal (€)',
+    newAccount2: 'Nova conta', editAccount: 'Editar conta',
+    bankName: 'Nome do banco',
+    cancel: 'Cancelar', confirm: 'Confirmar',
+    // Transaction modal fields
+    expense: 'Despesa', saving: 'Poupança',
+    addFunds: '↓ Adicionar fundos', withdrawBtn: '↑ Levantar',
+    dateLabel: 'Data', descriptionLabel: 'Descrição', accountLabel: 'Conta',
+    expenseCategory: 'Categoria de despesa', savingsCategory2: 'Categoria de poupança',
+    incomeCategory2: 'Categoria de rendimento', investmentCategory2: 'Categoria de investimento',
+    // Table headers — budget
+    categoryHeader: 'Categoria', budgetHeader: 'Orçamento', spentHeader: 'Gasto',
+    availableHeader: 'Disponível', progressHeader: 'Progresso', statusHeader: 'Estado',
+    savedHeader: 'Poupado', remainingHeader: 'Restante', investedHeader: 'Investido',
+    // Table headers — settings
+    budgetEurHeader: 'Orçamento (€)', colourHeader: 'Cor', actionHeader: 'Ação',
+    newCategory: '+ Nova categoria',
+    // Accounts table headers
+    nameHeader: 'Nome', bankHeader: 'Banco', typeHeader: 'Tipo',
+    // Advanced settings content
+    exportToExcel: 'Exportar para Excel', exportToExcelSub: 'Transações + resumo · todos os meses',
+    backupAndRestore: 'Backup e restauro', dataStoredLocally: 'Os dados estão guardados localmente no teu browser.',
+    backupBtn: '↓ Backup', restoreBtn: '↑ Restaurar',
+    noCategoriesYetMsg: '+ Nova categoria',
+    // Account type buttons
+    checking: 'À ordem', savings2: 'Poupança',
+    // Autosave
+    autosaveOn: 'Gravação automática', updated: 'Atualizado',
+    // Settings extras
+    budgetEur: 'Orçamento (€)', usePastMonthCategories: '↵ Usar categorias do mês anterior',
+    // All time
+    allTimeOverview: 'Visão geral', monthlyBreakdown: 'Resumo mensal',
+    spendingByCategory: 'Gastos por categoria',
+    totalIncome: 'Rendimento total', totalSpent: 'Gasto total',
+    totalSaved: 'Poupado total', totalInvested: 'Investido total',
+    incomeByCategory: 'Rendimento por categoria', expensesByCategory: 'Despesas por categoria',
+    savedByCategory: 'Poupado por categoria', withdrawnByCategory: 'Levantado por categoria',
+    month: 'Mês', income: 'Rendimento',
+    todayIs: 'Hoje é', noDataYet: 'Sem dados ainda.',
+  }
+};
+
+function t(key) {
+  return TRANSLATIONS[appLang]?.[key] ?? TRANSLATIONS['en'][key] ?? key;
+}
+
+function updateLangButtons(lang) {
+  const enBtn = document.getElementById('langBtnEn');
+  const ptBtn = document.getElementById('langBtnPt');
+  if (!enBtn || !ptBtn) return;
+  enBtn.style.background   = lang === 'en' ? 'white' : 'transparent';
+  enBtn.style.color        = lang === 'en' ? 'var(--text)' : 'var(--text-3)';
+  enBtn.style.fontWeight   = lang === 'en' ? '600' : '500';
+  enBtn.style.boxShadow    = lang === 'en' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none';
+  ptBtn.style.background   = lang === 'pt' ? 'white' : 'transparent';
+  ptBtn.style.color        = lang === 'pt' ? 'var(--text)' : 'var(--text-3)';
+  ptBtn.style.fontWeight   = lang === 'pt' ? '600' : '500';
+  ptBtn.style.boxShadow    = lang === 'pt' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none';
+}
+
+function setLanguage(lang) {
+  appLang = lang;
+  localStorage.setItem('clarityLang', lang);
+  updateLangButtons(lang);
+  render();
+  renderSettings();
+  applyTranslations();
+}
+
+function applyTranslations() {
+  setEl('sumSubIncome', t('allSourcesCombined'));
+  setEl('sumSubSpent', t('acrossAllCategories'));
+
+  // Nav pills
+  setEl('navBtnBudget', t('budget'));
+  setEl('navBtnTxns', t('transactions'));
+  setEl('navBtnDash', t('dashboard'));
+
+  // Language block
+  setEl('langBlockTitle', t('language'));
+  setEl('langBlockSub', t('interfaceLanguage'));
+
+  // Budget page title
+  setEl('pageTitleBudget', t('budgetTitle'));
+  setEl('pageSubBudget', t('budgetSub'));
+
+  // Budget summary cards
+  setEl('sumLabelIncome', t('incomeThisMonth'));
+  setEl('sumLabelSpent', t('spentSoFar'));
+  setEl('sumLabelSaved', t('savedThisMonth'));
+  setEl('sumLabelInvested', t('investedThisMonth'));
+  setEl('sumLabelBalance', t('balance'));
+  setEl('balanceSubEl', t('balanceSub'));
+
+  // Section titles
+  setEl('sectionSpending', t('spendingCategories'));
+  setEl('sectionSavings', t('savingsCategories'));
+  setEl('sectionInvestment', t('investmentCategories'));
+  setEl('addTxnBtn', t('addTransaction'));
+
+  // Transactions page
+  setEl('pageTitleTxns', t('transactionsTitle'));
+  setEl('pageSubTxns', t('transactionsSub'));
+  const searchInput = document.getElementById('txnSearch');
+  if (searchInput) searchInput.placeholder = t('searchDescription');
+
+  // Dashboard page
+  setEl('pageTitleDash', t('dashboardTitle'));
+
+  // Dashboard KPI labels
+  setEl('kpiLabelVsLast', t('vsLastMonth'));
+  setEl('kpiLabelRatio', t('expenseRatio'));
+  setEl('kpiLabelRate', t('savingsRate'));
+  setEl('kpiLabelTop', t('topExpense'));
+  setEl('kpiLabelNospend', t('noSpendDays'));
+
+  // KPI subs
+  setEl('r-expense-ratio-sub', t('ofIncomeGoingToExpenses'));
+  setEl('r-rate-sub', t('ofIncomeSavedThisMonth'));
+  setEl('r-top-cat-sub-label', t('biggestSpendingCategory'));
+  setEl('r-nospend-label', t('noSpendDays'));
+
+  // Chart titles
+  setEl('chartTitleOutflows', t('totalOutflows'));
+  setEl('chartTitleIncome', t('incomeBySource'));
+  setEl('chartTitleBalance', t('balanceByAccount'));
+  setEl('chartTitleBvr', t('budgetedVsReal'));
+  setEl('chartTitleDaily', t('dailySpending'));
+
+  // Settings
+  setEl('settingsPageTitle', t('settingsTitle'));
+  setEl('settingsPageSub', t('settingsSub'));
+  setEl('settingsAccountsTitle', t('accounts'));
+  setEl('settingsAccountsSub', t('setupBankAccounts'));
+  setEl('settingsNewAccountBtn', t('newAccount'));
+  setEl('settingsBudgetTitle', t('budgetSettings'));
+  setEl('settingsBudgetSub', t('categoriesPerMonth'));
+  setEl('settingsAdvancedTitle', t('advancedSettings'));
+  setEl('settingsAdvancedSub', t('exportBackupRestore'));
+
+  // All time button — preserve SVG, update text node
+  const allTimeBtnEl = document.getElementById('allTimeBtn');
+  if (allTimeBtnEl) {
+    const tn = allTimeBtnEl.lastChild;
+    if (tn && tn.nodeType === 3) tn.textContent = ' ' + t('allTime');
+  }
+
+  // Transaction type buttons
+  setEl('typeExp', t('expense'));
+  setEl('typeInc', t('income'));
+  setEl('typeSav', t('saving'));
+  setEl('typeInv', t('investment'));
+
+  // Saving sub-buttons
+  setEl('savSubAdd', t('addFunds'));
+  setEl('savSubWithdraw', t('withdrawBtn'));
+
+  // Account type buttons
+  setEl('accTypeChecking', t('checking'));
+  setEl('accTypeSavings', t('savings2'));
+  setEl('accTypeInvestment', t('investment'));
+
+  // Cancel buttons across all modals
+  ['closeModal()', 'closeCatModal()', 'closeInvestmentCatModal()', 'closeIncomeCatModal()',
+   'closeAccountModal()', 'closeAddBankModal()', 'closePastMonthModal()', 'closeRestoreModal()',
+   'closeDeleteCatModal()', 'closeDeleteAccModal()'].forEach(fn => {
+    document.querySelectorAll(`.btn.btn-outline[onclick="${fn}"]`).forEach(b => b.textContent = t('cancel'));
+  });
+
+  // Budget table headers — direct by row ID
+  const thSpend = document.getElementById('thRowSpend');
+  if (thSpend) {
+    const ths = thSpend.querySelectorAll('th');
+    if (ths[0]) ths[0].textContent = t('categoryHeader');
+    if (ths[1]) ths[1].textContent = t('budgetHeader');
+    if (ths[2]) ths[2].textContent = t('spentHeader');
+    if (ths[3]) ths[3].textContent = t('availableHeader');
+    if (ths[4]) ths[4].textContent = t('progressHeader');
+    if (ths[5]) ths[5].textContent = t('statusHeader');
+  }
+  const thSave = document.getElementById('thRowSave');
+  if (thSave) {
+    const ths = thSave.querySelectorAll('th');
+    if (ths[0]) ths[0].textContent = t('categoryHeader');
+    if (ths[1]) ths[1].textContent = t('budgetHeader');
+    if (ths[2]) ths[2].textContent = t('savedHeader');
+    if (ths[3]) ths[3].textContent = t('remainingHeader');
+    if (ths[4]) ths[4].textContent = t('progressHeader');
+    if (ths[5]) ths[5].textContent = t('statusHeader');
+  }
+  const thInvest = document.getElementById('thRowInvest');
+  if (thInvest) {
+    const ths = thInvest.querySelectorAll('th');
+    if (ths[0]) ths[0].textContent = t('categoryHeader');
+    if (ths[1]) ths[1].textContent = t('budgetHeader');
+    if (ths[2]) ths[2].textContent = t('investedHeader');
+    if (ths[3]) ths[3].textContent = t('remainingHeader');
+    if (ths[4]) ths[4].textContent = t('progressHeader');
+    if (ths[5]) ths[5].textContent = t('statusHeader');
+  }
+  const thTxn = document.getElementById('thRowTxn');
+  if (thTxn) {
+    const ths = thTxn.querySelectorAll('th');
+    if (ths[0]) ths[0].textContent = t('dateLabel');
+    if (ths[1]) ths[1].textContent = t('descriptionLabel');
+    if (ths[2]) ths[2].textContent = t('type');
+    if (ths[3]) ths[3].textContent = t('categoryHeader');
+    if (ths[4]) ths[4].textContent = t('accountLabel');
+    if (ths[5]) ths[5].textContent = t('amount');
+  }
+
+  // Settings table headers — spending/savings/investment/income
+  ['settingsTableBody','savingsTableBody','investmentTableBody','incomeTableBody'].forEach(tbId => {
+    const tbody = document.getElementById(tbId);
+    if (!tbody) return;
+    const thead = tbody.closest('table')?.querySelector('thead tr');
+    if (!thead) return;
+    const ths = thead.querySelectorAll('th');
+    ths.forEach((th, i) => {
+      if (i === 0) return; // drag handle
+      if (i === 1) th.textContent = t('categoryHeader');
+      if (i === 2) th.textContent = t('budgetEurHeader');
+      if (i === 3) th.textContent = t('colourHeader');
+      if (i === 4) th.textContent = t('actionHeader');
+    });
+  });
+
+  // Accounts table headers
+  const thAccounts = document.getElementById('thRowAccounts');
+  if (thAccounts) {
+    const ths = thAccounts.querySelectorAll('th');
+    if (ths[1]) ths[1].textContent = t('nameHeader');
+    if (ths[2]) ths[2].textContent = t('bankHeader');
+    if (ths[3]) ths[3].textContent = t('typeHeader');
+    if (ths[4]) ths[4].textContent = t('actionHeader');
+  }
+
+  // All time modal
+  setEl('atModalTitle', '🌐 ' + t('allTimeOverview'));
+  setEl('atLabelIncome', t('totalIncome'));
+  setEl('atLabelSpent', t('totalSpent'));
+  setEl('atLabelSaved', t('totalSaved'));
+  setEl('atLabelInvested', t('totalInvested'));
+  setEl('atCatTitle', t('spendingByCategory'));
+  setEl('atMonthTitle', t('monthlyBreakdown'));
+
+  // Advanced settings content
+  setEl('advExportTitle', t('exportToExcel'));
+  setEl('advExportSub', t('exportToExcelSub'));
+  setEl('advBackupTitle', t('backupAndRestore'));
+  setEl('advBackupSub', t('dataStoredLocally'));
+
+  // + New category buttons
+  setEl('newCatBtnSpend', t('newCategory'));
+  setEl('newCatBtnSave', t('newCategory'));
+  setEl('newCatBtnInvest', t('newCategory'));
+  setEl('newCatBtnIncome', t('newCategory'));
+
+  // Use past month categories button
+  const pastMonthBtnEl = document.querySelector('[onclick="usePastMonthSetup()"]');
+  if (pastMonthBtnEl) pastMonthBtnEl.textContent = t('usePastMonthCategories');
+
+  // Bank search placeholder
+  const bankSearch = document.getElementById('accountBankSearch');
+  if (bankSearch) bankSearch.placeholder = appLang === 'pt' ? 'Pesquisar banco...' : 'Search bank...';
+}
+
+function updateTableHeaders(tbodyId, headers) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const thead = tbody.closest('table')?.querySelector('thead tr');
+  if (!thead) return;
+  const ths = thead.querySelectorAll('th');
+  ths.forEach((th, i) => { if (headers[i] !== undefined) th.textContent = headers[i]; });
+}
+
+function setEl(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
 
 // ── Body scroll lock when any modal is open ───────────────────────
 const _modalObserver = new MutationObserver(() => {
@@ -1703,12 +2199,12 @@ function flashSaved() {
   const label = document.getElementById('autosaveLabel');
   if (!dot) return;
   dot.style.background = '#16A34A';
-  if (label) label.textContent = 'Autosave on';
+  if (label) label.textContent = t('autosaveOn');
   if (badge) {
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    badge.textContent = 'Updated ' + dateStr + ', ' + timeStr;
+    badge.textContent = t('updated') + ' ' + dateStr + ', ' + timeStr;
   }
   clearTimeout(flashTimer);
   flashTimer = setTimeout(() => { dot.style.background = '#16A34A'; }, 2000);
@@ -1804,7 +2300,7 @@ async function initApp() {
     const dot = document.getElementById('dbStatusDot');
     if (dot) dot.style.background = '#16A34A';
     const label = document.getElementById('autosaveLabel');
-    if (label) label.textContent = 'Autosave on';
+    if (label) label.textContent = t('autosaveOn');
 
     // Load accounts
     const storedAccounts = await dbGetAll('accounts');
@@ -1817,6 +2313,10 @@ async function initApp() {
     render();
     renderSettings();
     updateTodayLabel();
+
+    // Load language preference AFTER render — so all elements exist
+    const savedLang = localStorage.getItem('clarityLang') || 'en';
+    if (savedLang !== 'en') { appLang = savedLang; applyTranslations(); updateLangButtons(savedLang); }
 
   } catch (err) {
     console.error('IndexedDB error:', err);
@@ -2209,7 +2709,7 @@ function renderBudget() {
     document.getElementById('totalInvested').textContent = '€' + Math.round(totalInvested).toLocaleString('de-DE');
     document.getElementById('totalInvestedSub').textContent = totalInvestBudget > 0
       ? `€${Math.round(totalInvested).toLocaleString('de-DE')} of €${Math.round(totalInvestBudget).toLocaleString('de-DE')} budget`
-      : 'No budget set';
+      : t('noBudgetSet');
   }
 
   // Build saved-by-category map from saving transactions
@@ -2227,7 +2727,7 @@ function renderBudget() {
   const savedPct = totalSavingsGoal > 0 ? Math.round((totalSaved / totalSavingsGoal) * 100) : 0;
   document.getElementById('totalSavedSub').textContent = totalSavingsGoal > 0
     ? `${savedPct}% of €${totalSavingsGoal.toLocaleString('en-GB', {minimumFractionDigits:0})} goal`
-    : 'No savings categories set';
+    : t('noSavingsCategoriesSet');
 
   const spendCats      = categories.filter(c => !c.isSavings);
   const savingsCatsAll = categories.filter(c => c.isSavings);
@@ -2243,10 +2743,10 @@ function renderBudget() {
     const pct      = cat.budgeted > 0 ? Math.min((catSpent / cat.budgeted) * 100, 100) : 0;
     spendBudgeted += cat.budgeted;
     spendSpent    += catSpent;
-    let statusClass = 'ok', statusText = 'On track', barColor = '#16A34A';
-    if (catSpent > cat.budgeted)  { statusClass = 'over'; statusText = 'Over budget'; barColor = '#DC2626'; }
-    else if (pct === 100)         { statusClass = 'over'; statusText = 'Budget hit';  barColor = '#DC2626'; }
-    else if (pct > 80)            { statusClass = 'warn'; statusText = 'Nearly full'; barColor = '#D97706'; }
+    let statusClass = 'ok', statusText = t('onTrack'), barColor = '#16A34A';
+    if (catSpent > cat.budgeted)  { statusClass = 'over'; statusText = t('overBudget'); barColor = '#DC2626'; }
+    else if (pct === 100)         { statusClass = 'over'; statusText = t('budgetHit');  barColor = '#DC2626'; }
+    else if (pct > 80)            { statusClass = 'warn'; statusText = t('nearlyFull'); barColor = '#D97706'; }
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><div class="cat-name"><span class="cat-dot" style="background:${cat.color}"></span>${cat.name}</div></td>
@@ -2277,10 +2777,10 @@ function renderBudget() {
     saveGoal  += cat.budgeted;
     saveTotal += catSaved;
     let statusClass, statusText, barColor;
-    if (catSaved < 0)      { statusClass = 'over'; statusText = 'Withdrawn';   barColor = '#DC2626'; }
-    else if (pct >= 100)   { statusClass = 'ok';   statusText = 'Goal met';    barColor = '#16A34A'; }
-    else if (pct > 0)      { statusClass = 'warn'; statusText = 'In progress'; barColor = '#D97706'; }
-    else                   { statusClass = 'over'; statusText = 'Not saved';   barColor = '#DC2626'; }
+    if (catSaved < 0)      { statusClass = 'over'; statusText = t('withdrawn');   barColor = '#DC2626'; }
+    else if (pct >= 100)   { statusClass = 'ok';   statusText = t('goalMet');    barColor = '#16A34A'; }
+    else if (pct > 0)      { statusClass = 'warn'; statusText = t('inProgress'); barColor = '#D97706'; }
+    else                   { statusClass = 'over'; statusText = t('notSaved');   barColor = '#DC2626'; }
     const catSavedDisplay = (catSaved < 0 ? '−' : '') + fmt(Math.abs(catSaved));
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -2323,10 +2823,10 @@ function renderBudget() {
       invBudgeted += budget;
       invInvested += catInvested;
       let statusClass, statusText, barColor;
-      if (budget === 0)         { statusClass = 'ok';   statusText = 'No budget';    barColor = '#94A3B8'; }
-      else if (pct >= 100)      { statusClass = 'ok';   statusText = 'Goal met';     barColor = '#16A34A'; }
-      else if (catInvested > 0) { statusClass = 'warn'; statusText = 'In progress';  barColor = '#D97706'; }
-      else                      { statusClass = 'over'; statusText = 'Not invested'; barColor = '#DC2626'; }
+      if (budget === 0)         { statusClass = 'ok';   statusText = t('noBudget');    barColor = '#94A3B8'; }
+      else if (pct >= 100)      { statusClass = 'ok';   statusText = t('goalMet');     barColor = '#16A34A'; }
+      else if (catInvested > 0) { statusClass = 'warn'; statusText = t('inProgress');  barColor = '#D97706'; }
+      else                      { statusClass = 'over'; statusText = t('notInvested'); barColor = '#DC2626'; }
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><div class="cat-name"><span class="cat-dot" style="background:${cat.color}"></span>${cat.name}</div></td>
@@ -2704,7 +3204,7 @@ function renderReports() {
   const topCatId = Object.keys(spentByCat).sort((a, b) => spentByCat[b] - spentByCat[a])[0];
   const topCat = topCatId ? categories.find(c => c.id === parseInt(topCatId)) : null;
   document.getElementById('r-top-cat').textContent     = topCat ? topCat.name : '—';
-  document.getElementById('r-top-cat-sub').textContent = topCat ? fmt(spentByCat[topCatId]) + ' this month' : 'No expenses yet';
+  document.getElementById('r-top-cat-sub').textContent = topCat ? fmt(spentByCat[topCatId]) + ' ' + t('thisMonth') : t('noExpensesYet');
 
   // ── No-spend days ──
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -2717,7 +3217,7 @@ function renderReports() {
     noSpendDaysEl.textContent = '—';
     noSpendDaysEl.style.color = 'var(--text-3)';
     noSpendDaysEl.className = 'sum-val';
-    document.getElementById('r-nospend-sub').textContent = 'No transactions this month';
+    document.getElementById('r-nospend-sub').textContent = t('noTransactionsThisMonthSub');
   } else {
     const noSpendDays = Array.from({length: daysElapsed}, (_, i) => {
       const d = new Date(currentYear, currentMonth, i + 1);
@@ -2726,7 +3226,7 @@ function renderReports() {
     noSpendDaysEl.textContent = noSpendDays;
     noSpendDaysEl.style.color = '';
     noSpendDaysEl.className = 'sum-val accent';
-    document.getElementById('r-nospend-sub').textContent = `Out of ${daysElapsed} days so far`;
+    document.getElementById('r-nospend-sub').textContent = `${t('outOf')} ${daysElapsed} ${t('daysSoFar')}`;
   }
 
   // ── Outflow filter chips ──
@@ -2782,7 +3282,7 @@ function renderReports() {
   if (charts.doughnut) { charts.doughnut.destroy(); charts.doughnut = null; }
 
   if (catAmts.length === 0) {
-    document.getElementById('doughnutLegend').innerHTML = `<span style="font-size:13px;color:var(--text-3)">No outflows recorded yet.</span>`;
+    document.getElementById('doughnutLegend').innerHTML = `<span style="font-size:13px;color:var(--text-3)">${t('noOutflowsRecordedYet')}</span>`;
     const canvas = document.getElementById('doughnutChart');
     const ctx2 = canvas.getContext('2d');
     ctx2.clearRect(0, 0, canvas.width, canvas.height);
@@ -2877,7 +3377,7 @@ function renderReports() {
   const allTotal = legendCats.reduce((s, c) => s + allSpentMap[c.id], 0);
 
   document.getElementById('doughnutLegend').innerHTML = legendCats.length === 0
-    ? `<span style="font-size:13px;color:var(--text-3)">No spending yet.</span>`
+    ? `<span style="font-size:13px;color:var(--text-3)">${t('noSpendingYet')}</span>`
     : legendCats.map(c => {
         const val = allSpentMap[c.id] || 0;
         const pct = allTotal > 0 ? Math.round((val / allTotal) * 100) : 0;
@@ -2972,7 +3472,7 @@ let editingTxnId = null;
 function openAddTxn() {
   editingTxnId = null;
   const saveBtn = document.getElementById('txnSaveBtn');
-  if (saveBtn) saveBtn.textContent = 'Save transaction';
+  if (saveBtn) saveBtn.textContent = t('saveTransaction');
   document.getElementById('txnHeroLabel').textContent = 'Expense · today';
   document.getElementById('txnAmount').value = '';
   document.getElementById('txnPayee').value  = '';
@@ -2996,7 +3496,7 @@ function openEditTxn(id) {
   if (!t) return;
   editingTxnId = id;
   const saveBtn = document.getElementById('txnSaveBtn');
-  if (saveBtn) saveBtn.textContent = 'Update transaction';
+  if (saveBtn) saveBtn.textContent = t('updateTransaction');
   document.getElementById('txnAmount').value = t.amount;
   document.getElementById('txnPayee').value  = t.payee;
   document.getElementById('txnCat').value           = t.type === 'expense'    ? (t.catId || '') : '';
@@ -3055,7 +3555,7 @@ function renderInvestmentCatPills(selectedId) {
   if (!wrap) return;
   const invCats = investmentCategories;
   if (invCats.length === 0) {
-    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">No investment categories. Add one in Settings.</span>`;
+    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">${t('noInvestmentCategoriesSettings')}</span>`;
     return;
   }
   wrap.innerHTML = invCats.map(cat => {
@@ -3077,7 +3577,7 @@ function renderAccountPills(selectedId) {
   const wrap = document.getElementById('txnAccountPills');
   if (!wrap) return;
   if (accounts.length === 0) {
-    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">No accounts defined. Add one in Settings.</span>`;
+    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">${t('noAccountsDefinedSettings')}</span>`;
     return;
   }
   wrap.innerHTML = accounts.map(acc => {
@@ -3103,7 +3603,7 @@ function renderSavingCatPills(selectedId) {
   if (!wrap) return;
   const savCats = categories.filter(c => c.isSavings);
   if (savCats.length === 0) {
-    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">No savings categories. Add one in Settings.</span>`;
+    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">${t('noSavingsCategoriesSettings')}</span>`;
     document.getElementById('txnSavingCat').value = '';
     return;
   }
@@ -3125,7 +3625,7 @@ function renderIncomeCatPills(selectedId) {
   const wrap = document.getElementById('txnIncomeCatPills');
   if (!wrap) return;
   if (incomeCategories.length === 0) {
-    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">No income categories. Add one in Settings.</span>`;
+    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">${t('noIncomeCategoriesSettings')}</span>`;
     document.getElementById('txnIncomeCat').value = '';
     return;
   }
@@ -3216,7 +3716,7 @@ function renderCatRows(cats, tbodyId) {
 
   if (cats.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="7" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No categories yet. Click "+ New category" to add one.</td>`;
+    tr.innerHTML = `<td colspan="7" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">${t('noCategoriesYet')}</td>`;
     tbody.appendChild(tr);
     return;
   }
@@ -3276,7 +3776,7 @@ function renderIncomeCatRows() {
 
   if (settingsIncomeCategories.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="4" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No categories yet. Click &quot;+ New category&quot; to add one.</td>`;
+    tr.innerHTML = `<td colspan="4" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">${t('noCategoriesYet')}</td>`;
     tbody.appendChild(tr);
     return;
   }
@@ -3317,7 +3817,7 @@ function renderInvestmentCatRows() {
 
   if (investmentCategories.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="5" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No categories yet. Click &quot;+ New category&quot; to add one.</td>`;
+    tr.innerHTML = `<td colspan="5" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">${t('noCategoriesYet')}</td>`;
     tbody.appendChild(tr);
     return;
   }
@@ -3360,8 +3860,8 @@ function openEditInvestmentCat(id) {
   const cat = investmentCategories.find(c => c.id === id);
   if (!cat) return;
   editingInvestmentCatId = id;
-  document.getElementById('investmentCatModalTitle').textContent = 'Edit investment category';
-  document.getElementById('investmentCatSaveBtn').textContent = 'Save changes';
+  document.getElementById('investmentCatModalTitle').textContent = t('editInvestmentCategory');
+  document.getElementById('investmentCatSaveBtn').textContent = t('saveChanges');
   document.getElementById('investmentCatName').value = cat.name;
   document.getElementById('investmentCatBudget').value = cat.budgeted || 0;
   buildInvestmentCatColorPicker(cat.color);
@@ -3525,7 +4025,7 @@ function openAddCat(isSavings = false) {
   document.getElementById('catModalTitle').textContent = isSavings ? 'New savings category' : 'New spending category';
   document.getElementById('catName').value   = '';
   document.getElementById('catBudget').value = '';
-  document.getElementById('catBudgetLabel').textContent = 'Monthly budget (€)';
+  document.getElementById('catBudgetLabel').textContent = t('monthlyBudget');
   document.getElementById('catIsSavings').checked = isSavings;
   // Hide the savings checkbox row — determined by which button was clicked
   document.getElementById('catSavingsRow').style.display = 'none';
@@ -3540,7 +4040,7 @@ function openEditCat(id) {
   document.getElementById('catModalTitle').textContent = cat.isSavings ? 'Edit savings category' : 'Edit spending category';
   document.getElementById('catName').value   = cat.name;
   document.getElementById('catBudget').value = cat.budgeted;
-  document.getElementById('catBudgetLabel').textContent = 'Monthly budget (€)';
+  document.getElementById('catBudgetLabel').textContent = t('monthlyBudget');
   document.getElementById('catIsSavings').checked = !!cat.isSavings;
   document.getElementById('catSavingsRow').style.display = 'none';
   buildColorPicker(cat.color);
@@ -3671,7 +4171,7 @@ function renderCatPills(selectedId) {
   if (!wrap) return;
   const spendCats = categories.filter(c => !c.isSavings);
   if (spendCats.length === 0) {
-    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">No expense categories. Add one in Settings.</span>`;
+    wrap.innerHTML = `<span style="font-size:13px;color:var(--text-3)">${t('noExpenseCategoriesSettings')}</span>`;
     document.getElementById('txnCat').value = '';
     return;
   }
@@ -3740,7 +4240,8 @@ function updateTodayLabel() {
   const el = document.getElementById('todayLabel');
   if (el) {
     const now = new Date();
-    el.textContent = 'Today is ' + now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const locale = appLang === 'pt' ? 'pt-PT' : 'en-GB';
+    el.textContent = t('todayIs') + ' ' + now.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   }
   const badge = document.getElementById('todayBadge');
   if (badge) {
@@ -3770,7 +4271,7 @@ function bankInitials(name) {
 function openAddBankModal() {
   selectedAddBankColor = '#2563EB';
   document.getElementById('addBankName').value = '';
-  document.getElementById('addBankPreviewName').textContent = 'Bank name';
+  document.getElementById('addBankPreviewName').textContent = t('bankName');
   document.getElementById('addBankPreviewAvatar').textContent = '';
   document.getElementById('addBankPreviewAvatar').style.background = selectedAddBankColor;
   document.getElementById('addBankColorPicker').innerHTML = ADD_BANK_PALETTE.map(c =>
@@ -3816,7 +4317,7 @@ function openAddAccount() {
   editingAccountId = null;
   selectedAccountType = null;
   selectedBankId = null;
-  document.getElementById('accountModalTitle').textContent = 'New account';
+  document.getElementById('accountModalTitle').textContent = t('newAccount2');
   document.getElementById('accountName').value = '';
   document.getElementById('accountBankSearch').value = '';
   document.getElementById('accountBankId').value = '';
@@ -3836,7 +4337,7 @@ function openEditAccount(id) {
   editingAccountId = id;
   selectedAccountType = acc.type;
   selectedBankId = acc.bankId;
-  document.getElementById('accountModalTitle').textContent = 'Edit account';
+  document.getElementById('accountModalTitle').textContent = t('editAccount');
   document.getElementById('accountName').value = acc.name;
   document.getElementById('accountBankSearch').value = '';
   document.getElementById('accountBankId').value = acc.bankId;
@@ -3910,7 +4411,7 @@ function renderAccountRows() {
   const tbody = document.getElementById('accountsTableBody');
   if (!tbody) return;
   if (accounts.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">No accounts yet. Click "+ New account" to add one.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:20px 16px;text-align:center;color:var(--text-3);font-size:13px">${t('noAccountsYet')}</td></tr>`;
     return;
   }
   tbody.innerHTML = accounts.map((acc, idx) => {
@@ -4059,9 +4560,9 @@ function openAccountDetail(accId) {
   let breakdown = '';
   if (acc.type === 'checking') {
     const cols = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:4px">
-      ${catBreakdown('Income by category', txns.filter(t => t.type==='income'), 'var(--green)')}
-      ${catBreakdown('Expenses by category', txns.filter(t => t.type==='expense'), 'var(--red)')}
-      ${catBreakdown('Saved by category', txns.filter(t => t.type==='saving' && t.savingDir !== 'withdraw'), '#7C3AED')}
+      ${catBreakdown(t('incomeByCategory'), txns.filter(t => t.type==='income'), 'var(--green)')}
+      ${catBreakdown(t('expensesByCategory'), txns.filter(t => t.type==='expense'), 'var(--red)')}
+      ${catBreakdown(t('savedByCategory'), txns.filter(t => t.type==='saving' && t.savingDir !== 'withdraw'), '#7C3AED')}
     </div>`;
     breakdown = cols;
   } else if (acc.type === 'investment') {
@@ -4098,8 +4599,8 @@ function openAccountDetail(accId) {
       </div>`;
   } else {
     breakdown = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
-      ${catBreakdown('Saved by category', txns.filter(t => t.type==='saving' && t.savingDir !== 'withdraw'), 'var(--green)')}
-      ${catBreakdown('Withdrawn by category', txns.filter(t => t.type==='saving' && t.savingDir === 'withdraw'), 'var(--red)')}
+      ${catBreakdown(t('savedByCategory'), txns.filter(t => t.type==='saving' && t.savingDir !== 'withdraw'), 'var(--green)')}
+      ${catBreakdown(t('withdrawnByCategory'), txns.filter(t => t.type==='saving' && t.savingDir === 'withdraw'), 'var(--red)')}
     </div>`;
   }
 
@@ -4119,7 +4620,7 @@ function renderAccountBalance() {
   const el = document.getElementById('accountBalanceLegend');
   if (!el) return;
   if (accounts.length === 0) {
-    el.innerHTML = `<div style="font-size:13px;color:var(--text-3);padding:16px 0">No accounts defined yet.</div>`;
+    el.innerHTML = `<div style="font-size:13px;color:var(--text-3);padding:16px 0">${t('noAccountsDefinedYet')}</div>`;
     return;
   }
   const txns = monthlyTxns();
@@ -4179,7 +4680,7 @@ function renderIncomeBySource() {
   const total = Object.values(incomeMap).reduce((s, v) => s + v, 0) + uncatIncome;
 
   if (total === 0 && Object.keys(incomeMap).length === 0) {
-    el.innerHTML = `<div style="font-size:13px;color:var(--text-3);padding:16px 0">No income recorded yet.</div>`;
+    el.innerHTML = `<div style="font-size:13px;color:var(--text-3);padding:16px 0">${t('noIncomeRecordedYet')}</div>`;
     return;
   }
 
@@ -4249,7 +4750,7 @@ function renderAtTimeChips() {
   const monthLabel = isMonth ? (() => { const [y,m] = atTimeFilter.value.split('-'); return MON[parseInt(m)-1]+' '+y; })() : 'Month';
 
   wrap.innerHTML = `
-    <button class="bvr-chip${isAll?' active':''}" onclick="atTimeFilter={mode:'all',value:null};renderAtTimeChips();renderAllTimeData()" style="font-size:11px;padding:3px 10px">All time</button>
+    <button class="bvr-chip${isAll?' active':''}" onclick="atTimeFilter={mode:'all',value:null};renderAtTimeChips();renderAllTimeData()" style="font-size:11px;padding:3px 10px">${t('allTime')}</button>
     <div style="position:relative;display:inline-block">
       <button class="bvr-chip${isYear?' active':''}" onclick="toggleAtTimeDrop('year')" style="font-size:11px;padding:3px 10px">${yearLabel} ▾</button>
       <div id="atYearDrop" style="display:none;position:absolute;top:110%;left:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:200;min-width:90px;overflow:hidden">
@@ -4407,13 +4908,13 @@ function renderAtMonthTable() {
   });
   const sortedKeys = Object.keys(monthMap).sort().reverse();
   document.getElementById('at-month-table').innerHTML = sortedKeys.length === 0
-    ? `<tr><td style="color:var(--text-3);font-size:13px;padding:8px 0">No data yet.</td></tr>`
+    ? `<tr><td style="color:var(--text-3);font-size:13px;padding:8px 0">${t('noDataYet')}</td></tr>`
     : `<thead><tr>
-        <th style="${thStyleL}border-radius:8px 0 0 0">Month</th>
-        <th style="${thStyle}">Income</th>
-        <th style="${thStyle}">Spent</th>
-        <th style="${thStyle}">Saved</th>
-        <th style="${thStyle}border-radius:0 8px 0 0">Invested</th>
+        <th style="${thStyleL}border-radius:8px 0 0 0">${t('month')}</th>
+        <th style="${thStyle}">${t('income')}</th>
+        <th style="${thStyle}">${t('spentHeader')}</th>
+        <th style="${thStyle}">${t('savedHeader')}</th>
+        <th style="${thStyle}border-radius:0 8px 0 0">${t('investedHeader')}</th>
       </tr></thead><tbody>`
     + sortedKeys.map((key, i) => {
         const [y, m] = key.split('-');
@@ -4473,8 +4974,8 @@ let selectedInvestmentColor = '#2563EB';
 
 function openAddInvestmentCat() {
   editingInvestmentCatId = null;
-  document.getElementById('investmentCatModalTitle').textContent = 'New investment category';
-  document.getElementById('investmentCatSaveBtn').textContent = 'Save category';
+  document.getElementById('investmentCatModalTitle').textContent = t('newInvestmentCategory');
+  document.getElementById('investmentCatSaveBtn').textContent = t('saveCategory');
   document.getElementById('investmentCatName').value = '';
   document.getElementById('investmentCatBudget').value = '';
   buildInvestmentCatColorPicker(PALETTE[investmentCategories.length % PALETTE.length]);
@@ -4523,8 +5024,8 @@ document.getElementById('investmentCatModalOverlay').addEventListener('click', f
 
 function openAddIncomeCat() {
   editingIncomeCatId = null;
-  document.getElementById('incomeCatModalTitle').textContent = 'New income category';
-  document.getElementById('incomeCatSaveBtn').textContent = 'Save category';
+  document.getElementById('incomeCatModalTitle').textContent = t('newIncomeCategory');
+  document.getElementById('incomeCatSaveBtn').textContent = t('saveCategory');
   document.getElementById('incomeCatName').value = '';
   buildIncomeCatColorPicker(PALETTE[nextIncomeCatId % PALETTE.length]);
   document.getElementById('incomeCatModalOverlay').classList.add('open');
@@ -4534,8 +5035,8 @@ function openEditIncomeCat(id) {
   const cat = settingsIncomeCategories.find(c => c.id === id);
   if (!cat) return;
   editingIncomeCatId = id;
-  document.getElementById('incomeCatModalTitle').textContent = 'Edit income category';
-  document.getElementById('incomeCatSaveBtn').textContent = 'Save category';
+  document.getElementById('incomeCatModalTitle').textContent = t('editIncomeCategory');
+  document.getElementById('incomeCatSaveBtn').textContent = t('saveCategory');
   document.getElementById('incomeCatName').value = cat.name;
   buildIncomeCatColorPicker(cat.color);
   document.getElementById('incomeCatModalOverlay').classList.add('open');
