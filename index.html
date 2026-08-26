@@ -1150,7 +1150,8 @@
         <input type="text" id="accountBankSearch" placeholder="Search bank..." oninput="renderBankGrid()"
           style="border:none;outline:none;font-size:13px;font-family:var(--font);color:var(--text);background:transparent;width:100%;padding:0">
       </div>
-      <div id="bankGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px"></div>
+      <button type="button" onclick="openAddBankModal()" style="width:100%;margin:6px 0 6px;padding:7px;border:1.5px dashed var(--border);border-radius:8px;background:none;font-size:12px;color:var(--text-2);cursor:pointer;font-family:var(--font);font-weight:500;transition:border-color 0.1s,color 0.1s" onmouseover="this.style.borderColor='#2563EB';this.style.color='#2563EB'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">+ Add bank</button>
+      <div id="bankGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:4px"></div>
       <input type="hidden" id="accountBankId">
       <div class="field-error" id="accountBankErr" style="display:none;font-size:12px;color:var(--red);margin-top:4px">* Mandatory field</div>
     </div>
@@ -1535,7 +1536,7 @@ const BANKS = [
 ];
 
 function bankLogo(bankId, size=28) {
-  const b = BANKS.find(x => x.id === bankId) || { short: bankId, color: '#888', textColor: '#fff' };
+  const b = allBanks().find(x => x.id === bankId) || { short: bankId, color: '#888', textColor: '#fff' };
   const tc = b.textColor || '#fff';
   return `<div style="width:${size}px;height:${size}px;border-radius:${Math.round(size*0.22)}px;background:${b.color};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.3)}px;font-weight:500;color:${tc};flex-shrink:0;letter-spacing:-0.3px">${b.short}</div>`;
 }
@@ -1718,6 +1719,12 @@ function flashSaved() {
 async function initApp() {
   try {
     await openDB();
+
+    // Load custom banks
+    const storedCustomBanks = await dbGetMeta('customBanks');
+    if (storedCustomBanks) {
+      try { customBanks = JSON.parse(storedCustomBanks); } catch(e) { customBanks = []; }
+    }
 
     // Carrega categorias — agora por mês
     const currentMonthKey = currentBudgetKey();
@@ -2474,7 +2481,7 @@ function renderAccFilter() {
     return;
   }
   menu.innerHTML = accounts.map(acc => {
-    const b = BANKS.find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff' };
+    const b = allBanks().find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff' };
     const tc = b.textColor || '#fff';
     const checked = activeAccFilters.has(String(acc.id));
     return `<div class="fdd-item ${checked ? 'checked' : ''}" data-acc="${acc.id}" onclick="toggleAccFilter(${acc.id},'${acc.name}')">
@@ -2594,7 +2601,11 @@ function renderTxns() {
     if (activeCatFilters.size > 0 && !activeCatFilters.has(String(t.catId)) && !activeCatFilters.has(String(t.incomeCatId))) return false;
     if (activeAccFilters.size > 0 && !activeAccFilters.has(String(t.accountId))) return false;
     return true;
-  }).sort((a, b) => a.date.localeCompare(b.date));
+  }).sort((a, b) => {
+    const dateDiff = b.date.localeCompare(a.date);
+    if (dateDiff !== 0) return dateDiff;
+    return b.id - a.id;
+  });
 
   const tbody = document.getElementById('txnTableBody');
   if (!tbody) return;
@@ -2611,7 +2622,7 @@ function renderTxns() {
         ? (t.catId ? investmentCategories.find(c => c.id === t.catId) : null)
         : (t.catId ? catById(t.catId) : null);
     const accObj = t.accountId ? accounts.find(a => a.id === t.accountId) : null;
-    const bankObj = accObj ? BANKS.find(b => b.id === accObj.bankId) : null;
+    const bankObj = accObj ? allBanks().find(b => b.id === accObj.bankId) : null;
     const accBadge = accObj && bankObj
       ? `<div style="display:inline-flex;align-items:center;gap:4px"><div style="width:14px;height:14px;border-radius:3px;background:${bankObj.color};display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:500;color:${bankObj.textColor||'#fff'}">${bankObj.short}</div><span style="font-size:12px;color:var(--text-2)">${accObj.name}</span></div>`
       : '<span style="color:var(--text-3)">—</span>';
@@ -3070,7 +3081,7 @@ function renderAccountPills(selectedId) {
     return;
   }
   wrap.innerHTML = accounts.map(acc => {
-    const b = BANKS.find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff' };
+    const b = allBanks().find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff' };
     const tc = b.textColor || '#fff';
     const sel = selectedId == acc.id;
     return `<button type="button" onclick="selectAccountPill(${acc.id}, this)"
@@ -3743,6 +3754,63 @@ function updateTodayLabel() {
 let editingAccountId = null;
 let selectedAccountType = null;
 let selectedBankId = null;
+let customBanks = [];
+let selectedAddBankColor = '#2563EB';
+
+const ADD_BANK_PALETTE = ['#2563EB','#DC2626','#16A34A','#D97706','#7C3AED','#0891B2','#DB2777','#0F766E','#B45309','#111111'];
+
+function allBanks() { return [...BANKS, ...customBanks]; }
+
+function bankInitials(name) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.substring(0, 2).toUpperCase();
+}
+
+function openAddBankModal() {
+  selectedAddBankColor = '#2563EB';
+  document.getElementById('addBankName').value = '';
+  document.getElementById('addBankPreviewName').textContent = 'Bank name';
+  document.getElementById('addBankPreviewAvatar').textContent = '';
+  document.getElementById('addBankPreviewAvatar').style.background = selectedAddBankColor;
+  document.getElementById('addBankColorPicker').innerHTML = ADD_BANK_PALETTE.map(c =>
+    `<div onclick="pickAddBankColor('${c}')" style="width:26px;height:26px;border-radius:50%;background:${c};cursor:pointer;border:2.5px solid ${c === selectedAddBankColor ? '#111' : 'transparent'};flex-shrink:0"></div>`
+  ).join('');
+  const overlay = document.getElementById('addBankOverlay');
+  overlay.style.display = 'flex';
+  setTimeout(() => document.getElementById('addBankName').focus(), 50);
+}
+
+function closeAddBankModal() {
+  document.getElementById('addBankOverlay').style.display = 'none';
+}
+
+function pickAddBankColor(c) {
+  selectedAddBankColor = c;
+  document.getElementById('addBankPreviewAvatar').style.background = c;
+  document.getElementById('addBankColorPicker').innerHTML = ADD_BANK_PALETTE.map(col =>
+    `<div onclick="pickAddBankColor('${col}')" style="width:26px;height:26px;border-radius:50%;background:${col};cursor:pointer;border:2.5px solid ${col === c ? '#111' : 'transparent'};flex-shrink:0"></div>`
+  ).join('');
+}
+
+function updateAddBankPreview() {
+  const name = document.getElementById('addBankName').value.trim();
+  document.getElementById('addBankPreviewName').textContent = name || 'Bank name';
+  document.getElementById('addBankPreviewAvatar').textContent = name ? bankInitials(name) : '';
+}
+
+async function saveAddBank() {
+  const name = document.getElementById('addBankName').value.trim();
+  if (!name) { document.getElementById('addBankName').focus(); return; }
+  const id = 'custom_' + Date.now();
+  const bank = { id, name, short: bankInitials(name), color: selectedAddBankColor, textColor: '#fff', custom: true };
+  customBanks.push(bank);
+  await dbSetMeta('customBanks', JSON.stringify(customBanks));
+  closeAddBankModal();
+  renderBankGrid();
+  selectBank(id);
+  flashSaved();
+}
 
 function openAddAccount() {
   editingAccountId = null;
@@ -3801,7 +3869,7 @@ function selectAccountType(type) {
 
 function renderBankGrid() {
   const q = (document.getElementById('accountBankSearch').value || '').toLowerCase();
-  const filtered = BANKS.filter(b => b.name.toLowerCase().includes(q) || b.short.toLowerCase().includes(q))
+  const filtered = allBanks().filter(b => b.name.toLowerCase().includes(q) || b.short.toLowerCase().includes(q))
     .sort((a, b) => a.name.localeCompare(b.name));
   const grid = document.getElementById('bankGrid');
   grid.innerHTML = filtered.map(b => {
@@ -3846,7 +3914,7 @@ function renderAccountRows() {
     return;
   }
   tbody.innerHTML = accounts.map((acc, idx) => {
-    const b = BANKS.find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff', name: acc.bankId };
+    const b = allBanks().find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff', name: acc.bankId };
     const tc = b.textColor || '#fff';
     const typeLabel = acc.type.charAt(0).toUpperCase() + acc.type.slice(1);
     const accBg = idx % 2 === 0 ? '#FFFFFF' : '#FFFFFF';
@@ -3905,10 +3973,14 @@ document.getElementById('accountModalOverlay').addEventListener('click', functio
   if (e.target === this) closeAccountModal();
 });
 
+document.getElementById('addBankOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeAddBankModal();
+});
+
 function openAccountDetail(accId) {
   const acc = accounts.find(a => a.id === accId);
   if (!acc) return;
-  const b = BANKS.find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff', name: acc.bankId };
+  const b = allBanks().find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff', name: acc.bankId };
   const tc = b.textColor || '#fff';
   const txns = monthlyTxns().filter(t => t.accountId === accId);
 
@@ -4052,7 +4124,7 @@ function renderAccountBalance() {
   }
   const txns = monthlyTxns();
   el.innerHTML = accounts.map(acc => {
-    const b = BANKS.find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff', name: acc.bankId };
+    const b = allBanks().find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff', name: acc.bankId };
     const tc = b.textColor || '#fff';
     const accTxns = txns.filter(t => t.accountId === acc.id);
     let total = 0;
@@ -4611,5 +4683,28 @@ function installApp() {
   });
 }
 </script>
+<!-- Modal: Add bank -->
+<div id="addBankOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1100;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:18px;padding:24px;width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.18);position:relative;z-index:1101">
+    <div class="modal-title" style="margin-bottom:4px">Add bank</div>
+    <p style="font-size:12px;color:var(--text-3);margin-bottom:20px">The logo will use the bank's initials automatically.</p>
+    <div style="display:flex;align-items:center;gap:12px;background:var(--surface-2);border-radius:10px;padding:12px 14px;margin-bottom:20px">
+      <div id="addBankPreviewAvatar" style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:#2563EB;flex-shrink:0"></div>
+      <div>
+        <div id="addBankPreviewName" style="font-size:14px;font-weight:600;color:var(--text)">Bank name</div>
+        <div style="font-size:11px;color:var(--text-3)">Preview</div>
+      </div>
+    </div>
+    <label class="form-label">Bank name</label>
+    <input class="form-input" type="text" id="addBankName" placeholder="e.g. Santander" oninput="updateAddBankPreview()" style="margin-bottom:16px">
+    <label class="form-label">Logo colour</label>
+    <div id="addBankColorPicker" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1" onclick="closeAddBankModal()">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveAddBank()">Save bank</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
