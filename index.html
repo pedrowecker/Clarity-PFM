@@ -2329,7 +2329,13 @@ async function initApp() {
     // Load accounts
     try {
       const storedAccounts = await dbGetAll('accounts');
-      accounts = storedAccounts || [];
+      const accountOrder = await dbGetMeta('accountOrder');
+      if (accountOrder && Array.isArray(accountOrder)) {
+        accounts = accountOrder.map(id => storedAccounts.find(a => a.id === id)).filter(Boolean);
+        storedAccounts.forEach(a => { if (!accounts.find(x => x.id === a.id)) accounts.push(a); });
+      } else {
+        accounts = storedAccounts || [];
+      }
       const storedNextAccountId = await dbGetMeta('nextAccountId');
       if (storedNextAccountId !== null) nextAccountId = storedNextAccountId;
     } catch(e) { console.warn('Accounts load error:', e); accounts = []; }
