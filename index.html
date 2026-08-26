@@ -3246,7 +3246,8 @@ function renderReports() {
     if (prev === 0 && curr === 0) return '<span style="color:var(--text-3)">—</span>';
     if (prev === 0) return '<span style="color:var(--text-3)">—</span>';
     const pct = Math.round(((curr - prev) / prev) * 100);
-    const up = pct >= 0;
+    if (pct === 0) return '<span style="color:var(--text-3)">—</span>';
+    const up = pct > 0;
     const color = up ? 'var(--green)' : 'var(--red)';
     return `<span style="color:${color}">${up ? '↑' : '↓'}${Math.abs(pct)}%</span>`;
   };
@@ -4880,49 +4881,33 @@ function renderAtTypeChips() {
 
 function renderAtCatTable() {
   const txns = getAtTimeTxns();
-  const catMap = {};
-  txns.forEach(t => {
-    let id = null;
-    if (atTypeFilter === 'spending'   && t.type === 'expense')    id = t.catId;
-    if (atTypeFilter === 'savings'    && t.type === 'saving')     id = t.catId;
-    if (atTypeFilter === 'investment' && t.type === 'investment') id = t.catId;
-    if (atTypeFilter === 'income'     && t.type === 'income')     id = t.incomeCatId;
-    if (id) catMap[id] = (catMap[id] || 0) + (t.savingDir === 'withdraw' ? -t.amount : t.amount);
+  const dict = window._allCatDict || {};
+
+  // Aggregate by name (not ID) so same-named categories across months are merged
+  const nameMap = {};
+  txns.forEach(txn => {
+    let catId = null;
+    if (atTypeFilter === 'spending'   && txn.type === 'expense')    catId = txn.catId;
+    if (atTypeFilter === 'savings'    && txn.type === 'saving')     catId = txn.catId;
+    if (atTypeFilter === 'investment' && txn.type === 'investment') catId = txn.catId;
+    if (atTypeFilter === 'income'     && txn.type === 'income')     catId = txn.incomeCatId;
+    if (!catId) return;
+    const cat = dict[catId] || categories.find(x => x.id === catId) || incomeCategories.find(x => x.id === catId) || investmentCategories.find(x => x.id === catId) || { id: catId, name: '(deleted)', color: '#888' };
+    const name = cat.name;
+    if (!nameMap[name]) nameMap[name] = { name, color: cat.color, value: 0 };
+    const amt = (atTypeFilter === 'savings' && txn.savingDir === 'withdraw') ? -txn.amount : txn.amount;
+    nameMap[name].value += amt;
   });
+  const catPool = Object.values(nameMap);
 
-  // Build catPool from all transactions, not just current month's categories
-  const allCatIds = new Set(Object.keys(catMap).map(Number));
-  let catPool;
-  if (atTypeFilter === 'spending' || atTypeFilter === 'savings') {
-    catPool = [...new Map(
-      txns.filter(t => t.type === (atTypeFilter === 'savings' ? 'saving' : 'expense') && t.catId)
-          .map(t => [t.catId, { id: t.catId, name: t.catId, color: '#888' }])
-    ).values()];
-    // Enrich with known category names/colors from all months
-    catPool = catPool.map(c => {
-      const known = categories.find(x => x.id === c.id);
-      return known || c;
-    });
-  } else if (atTypeFilter === 'investment') {
-    catPool = [...new Map(
-      txns.filter(t => t.type === 'investment' && t.catId)
-          .map(t => [t.catId, { id: t.catId, name: t.catId, color: '#888' }])
-    ).values()].map(c => investmentCategories.find(x => x.id === c.id) || c);
-  } else {
-    catPool = [...new Map(
-      txns.filter(t => t.type === 'income' && t.incomeCatId)
-          .map(t => [t.incomeCatId, { id: t.incomeCatId, name: t.incomeCatId, color: '#888' }])
-    ).values()].map(c => incomeCategories.find(x => x.id === c.id) || c);
-  }
-
-  const catRows = catPool.sort((a, b) => (catMap[b.id] || 0) - (catMap[a.id] || 0));
-  const total   = catRows.reduce((s, c) => s + (catMap[c.id] || 0), 0);
+  const catRows = catPool.sort((a, b) => b.value - a.value);
+  const total   = catRows.reduce((s, c) => s + c.value, 0);
   const amtColor = atTypeFilter === 'income' ? 'var(--green)' : atTypeFilter === 'savings' ? 'var(--accent)' : atTypeFilter === 'investment' ? '#2563EB' : 'var(--red)';
 
   document.getElementById('at-cat-table').innerHTML = catPool.length === 0
     ? `<tr><td style="color:var(--text-3);font-size:13px;padding:8px 0">No data yet.</td></tr>`
     : catRows.map(c => {
-        const val = catMap[c.id] || 0;
+        const val = c.value;
         const pct = total > 0 ? Math.round((val / total) * 100) : 0;
         const amtDisplay = val === 0
           ? `<span style="color:var(--text-3)">€0.00</span>`
@@ -5031,7 +5016,20 @@ function openAllTime() {
   atTimeFilter = { mode: 'all', value: null };
   renderAtTimeChips();
   renderAtTypeChips();
-  renderAllTimeData();
+  // Build global category dictionary from all months
+  Promise.all([
+    dbGetAll('monthlyCategories'),
+    dbGetAll('monthlyIncomeCategories')
+  ]).then(([monthlyCats, monthlyIncomeCats]) => {
+    window._allCatDict = {};
+    monthlyCats.forEach(entry => {
+      (entry.categories || []).forEach(c => { if (!window._allCatDict[c.id]) window._allCatDict[c.id] = c; });
+    });
+    monthlyIncomeCats.forEach(entry => {
+      (entry.categories || []).forEach(c => { if (!window._allCatDict[c.id]) window._allCatDict[c.id] = c; });
+    });
+    renderAllTimeData();
+  });
   document.getElementById('allTimeOverlay').classList.add('open');
 }
 
