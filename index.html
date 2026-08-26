@@ -3989,25 +3989,29 @@ function initDragDrop(tbodyId) {
       if (tbodyId === 'investmentTableBody') {
         const srcIdx  = investmentCategories.findIndex(c => c.id === srcId);
         const destIdx = investmentCategories.findIndex(c => c.id === destId);
+        if (srcIdx < 0 || destIdx < 0) return;
         const [moved] = investmentCategories.splice(srcIdx, 1);
         investmentCategories.splice(destIdx, 0, moved);
         await saveMonthInvestmentCategories(currentSettingsKey(), investmentCategories);
         renderInvestmentCatRows();
       } else if (tbodyId === 'incomeTableBody') {
-        const srcIdx  = incomeCategories.findIndex(c => c.id === srcId);
-        const destIdx = incomeCategories.findIndex(c => c.id === destId);
-        const [moved] = incomeCategories.splice(srcIdx, 1);
-        incomeCategories.splice(destIdx, 0, moved);
-        await dbSetMeta('incomeCategoryOrder', incomeCategories.map(c => c.id));
+        const srcIdx  = settingsIncomeCategories.findIndex(c => c.id === srcId);
+        const destIdx = settingsIncomeCategories.findIndex(c => c.id === destId);
+        if (srcIdx < 0 || destIdx < 0) return;
+        const [moved] = settingsIncomeCategories.splice(srcIdx, 1);
+        settingsIncomeCategories.splice(destIdx, 0, moved);
+        await saveMonthIncomeCategories(currentSettingsKey(), settingsIncomeCategories);
+        if (settingsMonth === currentMonth && settingsYear === currentYear) incomeCategories = [...settingsIncomeCategories];
         renderIncomeCatRows();
       } else {
-        const srcIdx  = categories.findIndex(c => c.id === srcId);
-        const destIdx = categories.findIndex(c => c.id === destId);
-        const [moved] = categories.splice(srcIdx, 1);
-        categories.splice(destIdx, 0, moved);
-        await dbSetMeta('categoryOrder', categories.map(c => c.id));
+        const srcIdx  = settingsCategories.findIndex(c => c.id === srcId);
+        const destIdx = settingsCategories.findIndex(c => c.id === destId);
+        if (srcIdx < 0 || destIdx < 0) return;
+        const [moved] = settingsCategories.splice(srcIdx, 1);
+        settingsCategories.splice(destIdx, 0, moved);
+        await saveMonthCategories(currentSettingsKey(), settingsCategories);
+        if (settingsMonth === currentMonth && settingsYear === currentYear) { categories = [...settingsCategories]; render(); }
         renderSettings();
-        render();
       }
     });
   });
