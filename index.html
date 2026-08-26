@@ -4890,11 +4890,30 @@ function renderAtCatTable() {
     if (id) catMap[id] = (catMap[id] || 0) + (t.savingDir === 'withdraw' ? -t.amount : t.amount);
   });
 
+  // Build catPool from all transactions, not just current month's categories
+  const allCatIds = new Set(Object.keys(catMap).map(Number));
   let catPool;
-  if (atTypeFilter === 'spending')   catPool = categories.filter(c => !c.isSavings);
-  else if (atTypeFilter === 'savings') catPool = categories.filter(c => c.isSavings);
-  else if (atTypeFilter === 'investment') catPool = investmentCategories;
-  else catPool = incomeCategories;
+  if (atTypeFilter === 'spending' || atTypeFilter === 'savings') {
+    catPool = [...new Map(
+      txns.filter(t => t.type === (atTypeFilter === 'savings' ? 'saving' : 'expense') && t.catId)
+          .map(t => [t.catId, { id: t.catId, name: t.catId, color: '#888' }])
+    ).values()];
+    // Enrich with known category names/colors from all months
+    catPool = catPool.map(c => {
+      const known = categories.find(x => x.id === c.id);
+      return known || c;
+    });
+  } else if (atTypeFilter === 'investment') {
+    catPool = [...new Map(
+      txns.filter(t => t.type === 'investment' && t.catId)
+          .map(t => [t.catId, { id: t.catId, name: t.catId, color: '#888' }])
+    ).values()].map(c => investmentCategories.find(x => x.id === c.id) || c);
+  } else {
+    catPool = [...new Map(
+      txns.filter(t => t.type === 'income' && t.incomeCatId)
+          .map(t => [t.incomeCatId, { id: t.incomeCatId, name: t.incomeCatId, color: '#888' }])
+    ).values()].map(c => incomeCategories.find(x => x.id === c.id) || c);
+  }
 
   const catRows = catPool.sort((a, b) => (catMap[b.id] || 0) - (catMap[a.id] || 0));
   const total   = catRows.reduce((s, c) => s + (catMap[c.id] || 0), 0);
