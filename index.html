@@ -1299,6 +1299,29 @@
   <div id="chartBadgeSub" style="font-size:10px;opacity:0.8"></div>
 </div>
 
+<!-- Modal: Add bank -->
+<div id="addBankOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1100;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:18px;padding:24px;width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.18);position:relative;z-index:1101">
+    <div class="modal-title" style="margin-bottom:4px">Add bank</div>
+    <p style="font-size:12px;color:var(--text-3);margin-bottom:20px">The logo will use the bank's initials automatically.</p>
+    <div style="display:flex;align-items:center;gap:12px;background:var(--surface-2);border-radius:10px;padding:12px 14px;margin-bottom:20px">
+      <div id="addBankPreviewAvatar" style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:#2563EB;flex-shrink:0"></div>
+      <div>
+        <div id="addBankPreviewName" style="font-size:14px;font-weight:600;color:var(--text)">Bank name</div>
+        <div style="font-size:11px;color:var(--text-3)">Preview</div>
+      </div>
+    </div>
+    <label class="form-label">Bank name</label>
+    <input class="form-input" type="text" id="addBankName" placeholder="e.g. Santander" oninput="updateAddBankPreview()" style="margin-bottom:16px">
+    <label class="form-label">Logo colour</label>
+    <div id="addBankColorPicker" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1" onclick="closeAddBankModal()">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveAddBank()">Save bank</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════════
 //  CLARITY PFM — IndexedDB Edition
@@ -1842,6 +1865,8 @@ const DEFAULT_INCOME_CATEGORIES = [
 let incomeCategories = [];
 let nextIncomeCatId = 108;
 
+let investmentCategories = [];
+
 // Settings-specific category arrays (independent from budget view)
 let settingsCategories = [];
 let settingsIncomeCategories = [];
@@ -2217,84 +2242,83 @@ async function initApp() {
     await openDB();
 
     // Load custom banks
-    const storedCustomBanks = await dbGetMeta('customBanks');
-    if (storedCustomBanks) {
-      try { customBanks = JSON.parse(storedCustomBanks); } catch(e) { customBanks = []; }
-    }
+    try {
+      const storedCustomBanks = await dbGetMeta('customBanks');
+      if (storedCustomBanks) customBanks = JSON.parse(storedCustomBanks);
+    } catch(e) { customBanks = []; }
 
     // Carrega categorias — agora por mês
     const currentMonthKey = currentBudgetKey();
-    const storedMonthCats = await loadMonthCategories(currentMonthKey);
-
-    if (storedMonthCats !== null) {
-      categories = storedMonthCats;
-    } else {
-      // Migra categorias globais antigas para o mês atual
-      const storedCats = await dbGetAll('categories');
-      if (storedCats.length > 0) {
-        const order = await dbGetMeta('categoryOrder');
-        if (order && Array.isArray(order)) {
-          categories = order.map(id => storedCats.find(c => c.id === id)).filter(Boolean);
-          storedCats.forEach(c => { if (!categories.find(x => x.id === c.id)) categories.push(c); });
+    try {
+      const storedMonthCats = await loadMonthCategories(currentMonthKey);
+      if (storedMonthCats !== null) {
+        categories = storedMonthCats;
+      } else {
+        const storedCats = await dbGetAll('categories');
+        if (storedCats.length > 0) {
+          const order = await dbGetMeta('categoryOrder');
+          if (order && Array.isArray(order)) {
+            categories = order.map(id => storedCats.find(c => c.id === id)).filter(Boolean);
+            storedCats.forEach(c => { if (!categories.find(x => x.id === c.id)) categories.push(c); });
+          } else {
+            categories = storedCats;
+          }
+          await saveMonthCategories(currentMonthKey, categories);
         } else {
-          categories = storedCats;
+          categories = [];
         }
-        // Save to monthly store
-        await saveMonthCategories(currentMonthKey, categories);
-      } else {
-        categories = [];
       }
-    }
+    } catch(e) { console.warn('Categories load error:', e); categories = []; }
 
-    // Carrega income categories — agora por mês
-    const storedMonthIncomeCats = await loadMonthIncomeCategories(currentMonthKey);
-    if (storedMonthIncomeCats !== null) {
-      incomeCategories = storedMonthIncomeCats;
-    } else {
-      // Migrate old global income categories
-      const storedIncomeCats = await dbGetAll('incomeCategories');
-      if (storedIncomeCats.length > 0) {
-        incomeCategories = storedIncomeCats;
-        await saveMonthIncomeCategories(currentMonthKey, incomeCategories);
+    // Carrega income categories
+    try {
+      const storedMonthIncomeCats = await loadMonthIncomeCategories(currentMonthKey);
+      if (storedMonthIncomeCats !== null) {
+        incomeCategories = storedMonthIncomeCats;
       } else {
-        incomeCategories = [];
+        const storedIncomeCats = await dbGetAll('incomeCategories');
+        if (storedIncomeCats.length > 0) {
+          incomeCategories = storedIncomeCats;
+          await saveMonthIncomeCategories(currentMonthKey, incomeCategories);
+        } else {
+          incomeCategories = [];
+        }
       }
-    }
-    const storedNextIncomeCatId = await dbGetMeta('nextIncomeCatId');
-    if (storedNextIncomeCatId !== null) nextIncomeCatId = storedNextIncomeCatId;
+    } catch(e) { console.warn('Income categories load error:', e); incomeCategories = []; }
 
-    // Load investment categories — now per month
-    const storedMonthInvCats = await loadMonthInvestmentCategories(currentMonthKey);
-    if (storedMonthInvCats !== null) {
-      investmentCategories = storedMonthInvCats;
-    } else {
-      // Migrate from old global meta
-      const storedInvCats = await dbGetMeta('investmentCategories');
-      investmentCategories = storedInvCats !== null ? storedInvCats : [];
-      if (investmentCategories.length > 0) {
-        await saveMonthInvestmentCategories(currentMonthKey, investmentCategories);
+    try {
+      const storedNextIncomeCatId = await dbGetMeta('nextIncomeCatId');
+      if (storedNextIncomeCatId !== null) nextIncomeCatId = storedNextIncomeCatId;
+    } catch(e) {}
+
+    // Load investment categories
+    try {
+      const storedMonthInvCats = await loadMonthInvestmentCategories(currentMonthKey);
+      if (storedMonthInvCats !== null) {
+        investmentCategories = storedMonthInvCats;
+      } else {
+        const storedInvCats = await dbGetMeta('investmentCategories');
+        investmentCategories = storedInvCats !== null ? storedInvCats : [];
+        if (investmentCategories.length > 0) {
+          await saveMonthInvestmentCategories(currentMonthKey, investmentCategories);
+        }
       }
-    }
+    } catch(e) { console.warn('Investment categories load error:', e); investmentCategories = []; }
 
     // Carrega transações
-    transactions = await dbGetAll('transactions');
+    try {
+      transactions = await dbGetAll('transactions');
+    } catch(e) { console.warn('Transactions load error:', e); transactions = []; }
 
     // Carrega contadores
-    const storedNextId    = await dbGetMeta('nextId');
-    const storedNextCatId = await dbGetMeta('nextCatId');
-
-    if (storedNextId !== null) {
-      nextId = storedNextId;
-    } else {
-      // Deriva do maior id existente
-      nextId = transactions.length > 0 ? Math.max(...transactions.map(t => t.id)) + 1 : 1;
-    }
-
-    if (storedNextCatId !== null) {
-      nextCatId = storedNextCatId;
-    } else {
-      nextCatId = categories.length > 0 ? Math.max(...categories.map(c => c.id)) + 1 : 9;
-    }
+    try {
+      const storedNextId    = await dbGetMeta('nextId');
+      const storedNextCatId = await dbGetMeta('nextCatId');
+      if (storedNextId !== null) nextId = storedNextId;
+      else nextId = transactions.length > 0 ? Math.max(...transactions.map(t => t.id)) + 1 : 1;
+      if (storedNextCatId !== null) nextCatId = storedNextCatId;
+      else nextCatId = categories.length > 0 ? Math.max(...categories.map(c => c.id)) + 1 : 9;
+    } catch(e) {}
 
     // Indicador verde: DB ligada
     const dot = document.getElementById('dbStatusDot');
@@ -2303,10 +2327,12 @@ async function initApp() {
     if (label) label.textContent = t('autosaveOn');
 
     // Load accounts
-    const storedAccounts = await dbGetAll('accounts');
-    accounts = storedAccounts || [];
-    const storedNextAccountId = await dbGetMeta('nextAccountId');
-    if (storedNextAccountId !== null) nextAccountId = storedNextAccountId;
+    try {
+      const storedAccounts = await dbGetAll('accounts');
+      accounts = storedAccounts || [];
+      const storedNextAccountId = await dbGetMeta('nextAccountId');
+      if (storedNextAccountId !== null) nextAccountId = storedNextAccountId;
+    } catch(e) { console.warn('Accounts load error:', e); accounts = []; }
 
     updateDbInfo();
     updateSettingsMonthLabel();
@@ -2320,7 +2346,6 @@ async function initApp() {
 
   } catch (err) {
     console.error('IndexedDB error:', err);
-    // Fallback: corre com arrays em memória
     categories   = DEFAULT_CATEGORIES.map(c => ({ ...c }));
     transactions = [];
     const dot = document.getElementById('dbStatusDot');
@@ -4474,7 +4499,7 @@ document.getElementById('accountModalOverlay').addEventListener('click', functio
   if (e.target === this) closeAccountModal();
 });
 
-document.getElementById('addBankOverlay').addEventListener('click', function(e) {
+document.getElementById('addBankOverlay')?.addEventListener('click', function(e) {
   if (e.target === this) closeAddBankModal();
 });
 
@@ -5151,10 +5176,7 @@ if ('serviceWorker' in navigator) {
       });
   });
 
-  // Quando há uma nova versão disponível, recarrega automaticamente
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
-  });
+  // Não recarregar automaticamente — causa problemas com IndexedDB em curso
 }
 
 // ── PWA: botão "Instalar app" ─────────────────────────────────────
@@ -5184,28 +5206,6 @@ function installApp() {
   });
 }
 </script>
-<!-- Modal: Add bank -->
-<div id="addBankOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1100;align-items:center;justify-content:center">
-  <div style="background:white;border-radius:18px;padding:24px;width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.18);position:relative;z-index:1101">
-    <div class="modal-title" style="margin-bottom:4px">Add bank</div>
-    <p style="font-size:12px;color:var(--text-3);margin-bottom:20px">The logo will use the bank's initials automatically.</p>
-    <div style="display:flex;align-items:center;gap:12px;background:var(--surface-2);border-radius:10px;padding:12px 14px;margin-bottom:20px">
-      <div id="addBankPreviewAvatar" style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:#2563EB;flex-shrink:0"></div>
-      <div>
-        <div id="addBankPreviewName" style="font-size:14px;font-weight:600;color:var(--text)">Bank name</div>
-        <div style="font-size:11px;color:var(--text-3)">Preview</div>
-      </div>
-    </div>
-    <label class="form-label">Bank name</label>
-    <input class="form-input" type="text" id="addBankName" placeholder="e.g. Santander" oninput="updateAddBankPreview()" style="margin-bottom:16px">
-    <label class="form-label">Logo colour</label>
-    <div id="addBankColorPicker" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-outline" style="flex:1" onclick="closeAddBankModal()">Cancel</button>
-      <button class="btn btn-primary" style="flex:1" onclick="saveAddBank()">Save bank</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
