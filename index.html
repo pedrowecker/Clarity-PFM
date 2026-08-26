@@ -3517,30 +3517,30 @@ function openAddTxn() {
 }
 
 function openEditTxn(id) {
-  const t = transactions.find(x => x.id === id);
-  if (!t) return;
+  const txn = transactions.find(x => x.id === id);
+  if (!txn) return;
   editingTxnId = id;
   const saveBtn = document.getElementById('txnSaveBtn');
   if (saveBtn) saveBtn.textContent = t('updateTransaction');
-  document.getElementById('txnAmount').value = t.amount;
-  document.getElementById('txnPayee').value  = t.payee;
-  document.getElementById('txnCat').value           = t.type === 'expense'    ? (t.catId || '') : '';
-  document.getElementById('txnIncomeCat').value     = t.incomeCatId || '';
-  document.getElementById('txnSavingCat').value     = t.type === 'saving'     ? (t.catId || '') : '';
-  document.getElementById('txnInvestmentCat').value = t.type === 'investment' ? (t.catId || '') : '';
-  document.getElementById('txnSavingDirection').value = t.savingDir || 'add';
-  document.getElementById('txnAccount').value       = t.accountId || '';
+  document.getElementById('txnAmount').value = txn.amount;
+  document.getElementById('txnPayee').value  = txn.payee;
+  document.getElementById('txnCat').value           = txn.type === 'expense'    ? (txn.catId || '') : '';
+  document.getElementById('txnIncomeCat').value     = txn.incomeCatId || '';
+  document.getElementById('txnSavingCat').value     = txn.type === 'saving'     ? (txn.catId || '') : '';
+  document.getElementById('txnInvestmentCat').value = txn.type === 'investment' ? (txn.catId || '') : '';
+  document.getElementById('txnSavingDirection').value = txn.savingDir || 'add';
+  document.getElementById('txnAccount').value       = txn.accountId || '';
   document.getElementById('txnAccountErr').style.display = 'none';
-  renderCatPills(t.type === 'expense' ? t.catId : null);
-  renderAccountPills(t.accountId || null);
-  const parts = t.date.split('-');
+  renderCatPills(txn.type === 'expense' ? txn.catId : null);
+  renderAccountPills(txn.accountId || null);
+  const parts = txn.date.split('-');
   document.getElementById('txnDay').value   = String(parseInt(parts[2]));
   document.getElementById('txnMonth').value = String(parseInt(parts[1]));
   document.getElementById('txnYear').value  = parts[0];
-  document.getElementById('txnDate').value  = t.date;
-  const editCatId = t.type === 'income' ? (t.incomeCatId || null) : (t.type === 'saving' || t.type === 'investment') ? (t.catId || null) : null;
-  setType(t.type, editCatId);
-  if (t.type === 'saving') setSavingDirection(t.savingDir || 'add');
+  document.getElementById('txnDate').value  = txn.date;
+  const editCatId = txn.type === 'income' ? (txn.incomeCatId || null) : (txn.type === 'saving' || txn.type === 'investment') ? (txn.catId || null) : null;
+  setType(txn.type, editCatId);
+  if (txn.type === 'saving') setSavingDirection(txn.savingDir || 'add');
   updateTxnHero();
   document.getElementById('modalOverlay').classList.add('open');
 }
