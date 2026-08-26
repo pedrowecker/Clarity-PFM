@@ -2961,6 +2961,16 @@ function renderActiveChips() {
     </span>`);
   });
 
+  activeAccFilters.forEach(id => {
+    const acc = accounts.find(a => String(a.id) === id);
+    if (!acc) return;
+    chips.push(`<span class="active-chip">
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--text-3);flex-shrink:0"></span>
+      ${acc.name}
+      <button onclick="removeAccFilter('${id}')" style="background:none;border:none;cursor:pointer;color:inherit;font-size:11px;padding:0;line-height:1;opacity:0.7">✕</button>
+    </span>`);
+  });
+
   if (chips.length > 0) {
     chips.push(`<button onclick="clearAllFilters()" style="font-size:12px;color:var(--text-3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:3px 6px">Clear all</button>`);
   }
@@ -2987,14 +2997,27 @@ function removeCatFilter(id) {
   renderActiveChips(); renderTxns();
 }
 
+function removeAccFilter(id) {
+  activeAccFilters.delete(String(id));
+  const item = document.querySelector(`#accDropMenu [data-acc="${id}"]`);
+  if (item) item.classList.remove('checked');
+  document.getElementById('accDropBtn').classList.toggle('active', activeAccFilters.size > 0);
+  const ab = document.getElementById('accBadge');
+  if (ab) { ab.textContent = activeAccFilters.size; ab.style.display = activeAccFilters.size > 0 ? 'inline' : 'none'; }
+  renderActiveChips(); renderTxns();
+}
+
 function clearAllFilters() {
   activeTypeFilters.clear();
   activeCatFilters.clear();
+  activeAccFilters.clear();
   document.querySelectorAll('.fdd-item').forEach(i => i.classList.remove('checked'));
   document.getElementById('typeDropBtn').classList.remove('active');
   document.getElementById('catDropBtn').classList.remove('active');
+  document.getElementById('accDropBtn').classList.remove('active');
   const tb = document.getElementById('typeBadge'); if (tb) tb.style.display = 'none';
   const cb = document.getElementById('catBadge');  if (cb) cb.style.display = 'none';
+  const ab = document.getElementById('accBadge');  if (ab) ab.style.display = 'none';
   renderActiveChips(); renderTxns();
 }
 
