@@ -3242,17 +3242,19 @@ function renderReports() {
   const prevSpent  = prevTxns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const prevLabel = MON[prevMonth];
-  const fmtDelta = (curr, prev) => {
+  const fmtDelta = (curr, prev, higherIsBetter = true) => {
     if (prev === 0 && curr === 0) return '<span style="color:var(--text-3)">—</span>';
     if (prev === 0) return '<span style="color:var(--text-3)">—</span>';
-    const pct = Math.round(((curr - prev) / prev) * 100);
-    if (pct === 0) return `<span style="color:var(--text-3)">${fmt(curr)} (=)</span>`;
+    const pct = ((curr - prev) / prev) * 100;
+    const pctRounded = Math.round(pct);
     const up = pct > 0;
-    const color = up ? 'var(--green)' : 'var(--red)';
-    return `<span style="color:${color}">${up ? '↑' : '↓'}${Math.abs(pct)}%</span>`;
+    const good = higherIsBetter ? up : !up;
+    const color = pct === 0 ? 'var(--text-3)' : good ? 'var(--green)' : 'var(--red)';
+    const label = pct === 0 ? '0%' : `${up ? '↑' : '↓'}${Math.abs(pctRounded) < 1 ? '<1' : Math.abs(pctRounded)}%`;
+    return `<span style="color:${color}">${label}</span>`;
   };
-  document.getElementById('r-vs-income').innerHTML = fmtDelta(income, prevIncome);
-  document.getElementById('r-vs-spent').innerHTML  = fmtDelta(spent, prevSpent);
+  document.getElementById('r-vs-income').innerHTML = fmtDelta(income, prevIncome, true);
+  document.getElementById('r-vs-spent').innerHTML  = fmtDelta(spent, prevSpent, false);
   document.getElementById('r-vs-label').textContent = `vs. ${prevLabel} ${prevYear}`;
 
   // ── Top expense category ──
