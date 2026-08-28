@@ -3227,7 +3227,7 @@ function renderReports() {
     ratioEl.style.color = 'var(--text-3)';
   } else {
     ratioEl.textContent = expenseRatio + '%';
-    ratioEl.className = 'sum-val ' + (expenseRatio > 100 ? 'red' : expenseRatio > 80 ? 'amber' : 'green');
+    ratioEl.className = 'sum-val ' + (expenseRatio > 80 ? 'red' : expenseRatio > 60 ? 'amber' : 'green');
     ratioEl.style.color = '';
   }
 
@@ -3246,7 +3246,7 @@ function renderReports() {
     if (prev === 0 && curr === 0) return '<span style="color:var(--text-3)">—</span>';
     if (prev === 0) return '<span style="color:var(--text-3)">—</span>';
     const pct = Math.round(((curr - prev) / prev) * 100);
-    if (pct === 0) return '<span style="color:var(--text-3)">—</span>';
+    if (pct === 0) return `<span style="color:var(--text-3)">${fmt(curr)} (=)</span>`;
     const up = pct > 0;
     const color = up ? 'var(--green)' : 'var(--red)';
     return `<span style="color:${color}">${up ? '↑' : '↓'}${Math.abs(pct)}%</span>`;
