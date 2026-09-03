@@ -655,6 +655,10 @@
               <span class="fdd-check" id="chk-investment"></span>
               <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#2563EB;margin-right:8px;flex-shrink:0"></span>Investment
             </div>
+            <div class="fdd-item" onclick="toggleTypeFilter('transfer',this)">
+              <span class="fdd-check" id="chk-transfer"></span>
+              <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#0369A1;margin-right:8px;flex-shrink:0"></span>Transfer
+            </div>
           </div>
         </div>
 
@@ -706,6 +710,7 @@
           </tr>
         </thead>
         <tbody id="txnTableBody"></tbody>
+        <tfoot id="txnTableFoot"></tfoot>
       </table>
       </div>
     </div>
@@ -1000,6 +1005,7 @@
         <button class="type-btn" id="typeInc" onclick="setType('income')">Income</button>
         <button class="type-btn" id="typeSav" onclick="setType('saving')">Saving</button>
         <button class="type-btn" id="typeInv" onclick="setType('investment')">Investment</button>
+        <button class="type-btn" id="typeTrf" onclick="setType('transfer')">Transfer</button>
       </div>
     </div>
 
@@ -1056,7 +1062,29 @@
       <div id="txnInvestmentCatPills" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;"></div>
       <input type="hidden" id="txnInvestmentCat">
     </div>
-    <div class="form-row">
+    <div class="form-row" id="transferRow" style="display:none">
+      <!-- Toggle internal/external -->
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <button type="button" id="trfInternal" onclick="setTransferType('internal')" class="btn btn-outline" style="flex:1;font-size:12px;background:#F0EEE8;color:var(--text);border-color:transparent;font-weight:500">⇄ Between my accounts</button>
+        <button type="button" id="trfExternal" onclick="setTransferType('external')" class="btn btn-outline" style="flex:1;font-size:12px">↗ To someone</button>
+      </div>
+      <!-- From account -->
+      <label class="form-label">From account</label>
+      <div id="txnFromAccountPills" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;margin-bottom:12px"></div>
+      <input type="hidden" id="txnFromAccount">
+      <!-- To account (internal) -->
+      <div id="trfToAccountRow">
+        <label class="form-label">To account</label>
+        <div id="txnToAccountPills" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;margin-bottom:4px"></div>
+        <input type="hidden" id="txnToAccount">
+      </div>
+      <!-- To name (external) -->
+      <div class="form-row" id="trfToNameRow" style="display:none">
+        <label class="form-label">To (person / entity)</label>
+        <input class="form-input" type="text" id="txnToName" placeholder="e.g. João, Landlord...">
+      </div>
+    </div>
+    <div class="form-row" id="accountRow">
       <label class="form-label">Account</label>
       <div id="txnAccountPills" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;"></div>
       <input type="hidden" id="txnAccount">
@@ -2720,7 +2748,8 @@ function renderBudget() {
   const income = txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const spent  = txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const saved  = txns.filter(t => t.type === 'saving').reduce((s, t) => s + (t.savingDir === 'withdraw' ? -t.amount : t.amount), 0);
-  const remain = income - spent - saved - txns.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0);
+  const extTransfers = txns.filter(t => t.type === 'transfer' && t.transferType === 'external').reduce((s, t) => s + t.amount, 0);
+  const remain = income - spent - saved - txns.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0) - extTransfers;
   const spentMap = spentByCategory();
 
   document.getElementById('totalIncome').textContent    = '€' + Math.round(income).toLocaleString('de-DE');
@@ -3167,6 +3196,8 @@ function renderTxns() {
 
   if (list.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">↕</div><div class="empty-msg">No transactions found.</div></div></td></tr>`;
+    const tfoot = document.getElementById('txnTableFoot');
+    if (tfoot) tfoot.innerHTML = '';
     return;
   }
 
@@ -3186,14 +3217,30 @@ function renderTxns() {
     const catBadge = cat
       ? `<span style="display:inline-flex;align-items:center;gap:5px"><span class="cat-dot" style="background:${cat.color}"></span>${cat.name}</span>`
       : '<span style="color:var(--text-3)">—</span>';
-    const sign = t.type === 'income' ? '+' : t.type === 'saving' && t.savingDir !== 'withdraw' ? '+' : '−';
+    const sign = t.type === 'income' ? '+' : t.type === 'saving' && t.savingDir !== 'withdraw' ? '+' : t.type === 'transfer' ? '↔' : '−';
+    const typeColor = t.type === 'income' ? 'var(--green)' : t.type === 'saving' ? '#7C3AED' : t.type === 'investment' ? '#2563EB' : t.type === 'transfer' ? '#0369A1' : 'var(--red)';
+    const typeBg    = t.type === 'income' ? 'var(--green-bg, #EAF3DE)' : t.type === 'saving' ? '#EDE9FE' : t.type === 'investment' ? '#EFF6FF' : t.type === 'transfer' ? '#E0F2FE' : 'var(--red-bg, #FCEBEB)';
+    const typeLabel = t.type === 'income' ? 'Income' : t.type === 'saving' ? 'Saving' : t.type === 'investment' ? 'Investment' : t.type === 'transfer' ? 'Transfer' : 'Expense';
+    const amtClass  = t.type === 'income' ? 'income' : t.type === 'investment' ? 'invest' : t.type === 'saving' && t.savingDir !== 'withdraw' ? 'income' : t.type === 'transfer' ? 'invest' : 'expense';
+
+    // For transfers, show from→to in account column
+    let accDisplay = accBadge;
+    if (t.type === 'transfer') {
+      const toAcc  = t.toAccountId ? accounts.find(a => a.id === t.toAccountId) : null;
+      const toBankObj = toAcc ? allBanks().find(b => b.id === toAcc.bankId) : null;
+      const toLabel = toAcc && toBankObj
+        ? `<div style="display:inline-flex;align-items:center;gap:4px"><div style="width:14px;height:14px;border-radius:3px;background:${toBankObj.color};display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:500;color:${toBankObj.textColor||'#fff'}">${toBankObj.short}</div><span style="font-size:12px;color:var(--text-2)">${toAcc.name}</span></div>`
+        : t.toName ? `<span style="font-size:12px;color:var(--text-2)">${t.toName}</span>` : '<span style="color:var(--text-3)">—</span>';
+      accDisplay = `<div style="display:flex;align-items:center;gap:4px">${accBadge}<span style="color:var(--text-3);font-size:11px">→</span>${toLabel}</div>`;
+    }
+
     return `<tr>
       <td class="txn-date">${dateStr}</td>
       <td><div class="txn-payee">${t.payee}</div></td>
-      <td class="txn-cat"><span style="font-size:12px;padding:2px 8px;border-radius:99px;background:${t.type === 'income' ? 'var(--green-bg, #EAF3DE)' : t.type === 'saving' ? '#EDE9FE' : t.type === 'investment' ? '#EFF6FF' : 'var(--red-bg, #FCEBEB)'};color:${t.type === 'income' ? 'var(--green)' : t.type === 'saving' ? '#7C3AED' : t.type === 'investment' ? '#2563EB' : 'var(--red)'}">${t.type === 'income' ? 'Income' : t.type === 'saving' ? 'Saving' : t.type === 'investment' ? 'Investment' : 'Expense'}</span></td>
+      <td class="txn-cat"><span style="font-size:12px;padding:2px 8px;border-radius:99px;background:${typeBg};color:${typeColor}">${typeLabel}</span></td>
       <td class="txn-cat">${catBadge}</td>
-      <td class="txn-cat">${accBadge}</td>
-      <td class="txn-amount ${t.type === 'income' ? 'income' : t.type === 'investment' ? 'invest' : t.type === 'saving' && t.savingDir !== 'withdraw' ? 'income' : 'expense'}">${sign}${fmt(t.amount)}</td>
+      <td class="txn-cat">${accDisplay}</td>
+      <td class="txn-amount ${amtClass}">${sign}${fmt(t.amount)}</td>
       <td style="padding:12px 16px">
         <div style="display:flex;gap:4px;justify-content:flex-end">
           <button class="del-btn edit-btn" onclick="openEditTxn(${t.id})" title="Edit">✎</button>
@@ -3202,6 +3249,51 @@ function renderTxns() {
       </td>
     </tr>`;
   }).join('');
+
+  // ── Totals footer ─────────────────────────────────────────
+  const tfoot = document.getElementById('txnTableFoot');
+  if (!tfoot) return;
+
+  const allMonth = monthlyTxns();
+
+  const calcTotals = (txns) => ({
+    income:   txns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
+    expenses: txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
+    savings:  txns.filter(t => t.type === 'saving').reduce((s, t) => s + (t.savingDir === 'withdraw' ? -t.amount : t.amount), 0),
+    invested: txns.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0),
+  });
+
+  const filTotals = calcTotals(list);
+  const monTotals = calcTotals(allMonth);
+
+  const hasFilters = search || activeTypeFilters.size > 0 || activeCatFilters.size > 0 || activeAccFilters.size > 0;
+
+  const filNet = filTotals.income - filTotals.expenses - filTotals.savings - filTotals.invested;
+  const monNet = monTotals.income - monTotals.expenses - monTotals.savings - monTotals.invested;
+
+  const subtotalRow = (totals, net, label, borderTop) => {
+    const parts = [];
+    if (totals.income   > 0) parts.push(`<span style="color:var(--green)">+${fmt(totals.income)} income</span>`);
+    if (totals.expenses > 0) parts.push(`<span style="color:var(--red)">−${fmt(totals.expenses)} expenses</span>`);
+    if (totals.savings  > 0) parts.push(`<span style="color:#7C3AED">+${fmt(totals.savings)} savings</span>`);
+    if (totals.invested > 0) parts.push(`<span style="color:#2563EB">+${fmt(totals.invested)} invested</span>`);
+    const netColor = net >= 0 ? 'var(--green)' : 'var(--red)';
+    const netSign  = net >= 0 ? '+' : '−';
+    return `<tr style="border-top:${borderTop};background:var(--surface-1)">
+      <td colspan="5" style="padding:10px 16px;font-size:12px;color:var(--text-3);font-weight:500">${label} &nbsp; ${parts.join(' &nbsp;·&nbsp; ')}</td>
+      <td style="padding:10px 16px;text-align:right;font-size:13px;font-weight:600;color:${netColor}">${netSign}${fmt(Math.abs(net))}</td>
+      <td></td>
+    </tr>`;
+  };
+
+  let footHtml = '';
+  if (hasFilters) {
+    footHtml += subtotalRow(filTotals, filNet, 'Filtered', '1.5px solid var(--border-strong)');
+    footHtml += subtotalRow(monTotals, monNet, 'Month total', '0.5px solid var(--border)');
+  } else {
+    footHtml += subtotalRow(monTotals, monNet, 'Month total', '1.5px solid var(--border-strong)');
+  }
+  tfoot.innerHTML = footHtml;
 }
 
 function renderReports() {
@@ -3574,6 +3666,13 @@ function openEditTxn(id) {
   const editCatId = txn.type === 'income' ? (txn.incomeCatId || null) : (txn.type === 'saving' || txn.type === 'investment') ? (txn.catId || null) : null;
   setType(txn.type, editCatId);
   if (txn.type === 'saving') setSavingDirection(txn.savingDir || 'add');
+  if (txn.type === 'transfer') {
+    setTransferType(txn.transferType || 'internal');
+    document.getElementById('txnFromAccount').value = txn.accountId || '';
+    document.getElementById('txnToAccount').value   = txn.toAccountId || '';
+    if (txn.toName) document.getElementById('txnToName').value = txn.toName;
+    renderTransferAccountPills();
+  }
   updateTxnHero();
   document.getElementById('modalOverlay').classList.add('open');
 }
@@ -3586,17 +3685,74 @@ function setType(t, selectedCatId) {
   document.getElementById('typeSav').className = 'type-btn' + (t === 'saving'     ? ' active-sav' : '');
   document.getElementById('typeInc').className = 'type-btn' + (t === 'income'     ? ' active-inc' : '');
   document.getElementById('typeInv').className = 'type-btn' + (t === 'investment' ? ' active-inv' : '');
+  document.getElementById('typeTrf').className = 'type-btn' + (t === 'transfer'   ? ' active-exp' : '');
   document.getElementById('catRow').style.display           = t === 'expense'    ? '' : 'none';
   document.getElementById('savingCatRow').style.display     = t === 'saving'     ? '' : 'none';
   document.getElementById('savingSubRow').style.display     = t === 'saving'     ? '' : 'none';
   document.getElementById('incomeCatRow').style.display     = t === 'income'     ? '' : 'none';
   document.getElementById('investmentCatRow').style.display = t === 'investment' ? '' : 'none';
+  document.getElementById('transferRow').style.display      = t === 'transfer'   ? '' : 'none';
+  document.getElementById('accountRow').style.display       = t === 'transfer'   ? 'none' : '';
   if (t === 'income')     renderIncomeCatPills(selectedCatId ?? null);
   if (t === 'saving')     renderSavingCatPills(selectedCatId ?? null);
   if (t === 'investment') renderInvestmentCatPills(selectedCatId ?? null);
+  if (t === 'transfer')   { setTransferType('internal'); renderTransferAccountPills(); }
   // Re-render account pills to apply type-based filter
   const currentAccId = parseInt(document.getElementById('txnAccount').value) || null;
-  renderAccountPills(currentAccId);
+  if (t !== 'transfer') renderAccountPills(currentAccId);
+  updateTxnHero();
+}
+
+function setTransferType(type) {
+  const intBtn = document.getElementById('trfInternal');
+  const extBtn = document.getElementById('trfExternal');
+  const toAccRow  = document.getElementById('trfToAccountRow');
+  const toNameRow = document.getElementById('trfToNameRow');
+  intBtn.style.cssText = type === 'internal' ? 'flex:1;font-size:12px;background:#F0EEE8;color:var(--text);border-color:transparent;font-weight:500' : 'flex:1;font-size:12px';
+  extBtn.style.cssText = type === 'external' ? 'flex:1;font-size:12px;background:#F0EEE8;color:var(--text);border-color:transparent;font-weight:500' : 'flex:1;font-size:12px';
+  toAccRow.style.display  = type === 'internal' ? '' : 'none';
+  toNameRow.style.display = type === 'external' ? '' : 'none';
+  document.getElementById('txnToAccount').value = '';
+  document.getElementById('txnToName').value    = '';
+  window._transferType = type;
+  renderTransferAccountPills();
+}
+
+function renderTransferAccountPills() {
+  const fromWrap = document.getElementById('txnFromAccountPills');
+  const toWrap   = document.getElementById('txnToAccountPills');
+  if (!fromWrap) return;
+  const selectedFrom = parseInt(document.getElementById('txnFromAccount').value) || null;
+  const selectedTo   = parseInt(document.getElementById('txnToAccount').value) || null;
+
+  const pill = (acc, selectedId, onclickFn) => {
+    const b = allBanks().find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff' };
+    const sel = selectedId == acc.id;
+    return `<button type="button" onclick="${onclickFn}(${acc.id}, this)"
+      style="display:flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;border:1px solid ${sel ? 'transparent' : 'var(--border-strong)'};background:${sel ? '#EFF6FF' : 'var(--surface)'};cursor:pointer;font-size:13px;font-weight:${sel ? '500' : '400'};color:${sel ? '#1D4ED8' : 'var(--text-2)'};font-family:var(--font)">
+      <div style="width:14px;height:14px;border-radius:3px;background:${b.color};display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:500;color:${b.textColor||'#fff'};flex-shrink:0">${b.short}</div>${acc.name}
+    </button>`;
+  };
+
+  fromWrap.innerHTML = accounts.map(acc => pill(acc, selectedFrom, 'selectFromAccountPill')).join('');
+  if (toWrap) toWrap.innerHTML = accounts.map(acc => pill(acc, selectedTo, 'selectToAccountPill')).join('');
+}
+
+function selectFromAccountPill(id, el) {
+  document.getElementById('txnFromAccount').value = id;
+  document.querySelectorAll('#txnFromAccountPills button').forEach(b => {
+    b.style.background = 'var(--surface)'; b.style.color = 'var(--text-2)'; b.style.fontWeight = '400'; b.style.border = '1px solid var(--border-strong)';
+  });
+  el.style.background = '#EFF6FF'; el.style.color = '#1D4ED8'; el.style.fontWeight = '500'; el.style.border = '1px solid transparent';
+  updateTxnHero();
+}
+
+function selectToAccountPill(id, el) {
+  document.getElementById('txnToAccount').value = id;
+  document.querySelectorAll('#txnToAccountPills button').forEach(b => {
+    b.style.background = 'var(--surface)'; b.style.color = 'var(--text-2)'; b.style.fontWeight = '400'; b.style.border = '1px solid var(--border-strong)';
+  });
+  el.style.background = '#EFF6FF'; el.style.color = '#1D4ED8'; el.style.fontWeight = '500'; el.style.border = '1px solid transparent';
   updateTxnHero();
 }
 
@@ -3717,18 +3873,48 @@ async function addTransaction() {
   const date   = document.getElementById('txnDate').value;
   const amount = parseFloat(document.getElementById('txnAmount').value.replace(',', '.'));
   const payee  = document.getElementById('txnPayee').value.trim();
-  const catId        = txnType === 'expense'    ? (parseInt(document.getElementById('txnCat').value) || null)
-                     : txnType === 'saving'     ? (parseInt(document.getElementById('txnSavingCat').value) || null)
-                     : txnType === 'investment' ? (parseInt(document.getElementById('txnInvestmentCat').value) || null)
-                     : null;
-  const incomeCatId  = txnType === 'income' ? (parseInt(document.getElementById('txnIncomeCat').value) || null) : null;
-  const accountId    = parseInt(document.getElementById('txnAccount').value) || null;
   const savingDir    = txnType === 'saving' ? (document.getElementById('txnSavingDirection').value || 'add') : null;
 
   if (!date || isNaN(amount) || amount <= 0 || !payee) {
     alert('Please fill in date, description, and a valid amount.');
     return;
   }
+
+  // Transfer type
+  if (txnType === 'transfer') {
+    const fromAccountId = parseInt(document.getElementById('txnFromAccount').value) || null;
+    const transferType  = window._transferType || 'internal';
+    const toAccountId   = transferType === 'internal' ? (parseInt(document.getElementById('txnToAccount').value) || null) : null;
+    const toName        = transferType === 'external' ? document.getElementById('txnToName').value.trim() : null;
+    if (!fromAccountId) { alert('Please select a source account.'); return; }
+    if (transferType === 'internal' && !toAccountId) { alert('Please select a destination account.'); return; }
+    if (transferType === 'external' && !toName) { alert('Please enter the recipient name.'); return; }
+
+    if (editingTxnId !== null) {
+      const txn = transactions.find(x => x.id === editingTxnId);
+      if (txn) {
+        txn.date = date; txn.payee = payee; txn.amount = amount; txn.type = 'transfer';
+        txn.accountId = fromAccountId; txn.toAccountId = toAccountId; txn.toName = toName; txn.transferType = transferType;
+        await saveTransaction(txn);
+      }
+      editingTxnId = null;
+    } else {
+      const newTxn = { id: nextId++, date, payee, amount, type: 'transfer', accountId: fromAccountId, toAccountId, toName, transferType, catId: null, incomeCatId: null, savingDir: null };
+      transactions.push(newTxn);
+      await saveTransaction(newTxn);
+      await dbSetMeta('nextId', nextId);
+    }
+    closeModal(); render(); updateDbInfo();
+    return;
+  }
+
+  const catId        = txnType === 'expense'    ? (parseInt(document.getElementById('txnCat').value) || null)
+                     : txnType === 'saving'     ? (parseInt(document.getElementById('txnSavingCat').value) || null)
+                     : txnType === 'investment' ? (parseInt(document.getElementById('txnInvestmentCat').value) || null)
+                     : null;
+  const incomeCatId  = txnType === 'income' ? (parseInt(document.getElementById('txnIncomeCat').value) || null) : null;
+  const accountId    = parseInt(document.getElementById('txnAccount').value) || null;
+
   if (!accountId) {
     const errEl = document.getElementById('txnAccountErr');
     if (errEl) errEl.style.display = '';
@@ -3736,10 +3922,10 @@ async function addTransaction() {
   }
 
   if (editingTxnId !== null) {
-    const t = transactions.find(x => x.id === editingTxnId);
-    if (t) {
-      t.date = date; t.payee = payee; t.catId = catId; t.incomeCatId = incomeCatId; t.accountId = accountId; t.savingDir = savingDir; t.type = txnType; t.amount = amount;
-      await saveTransaction(t);
+    const txn = transactions.find(x => x.id === editingTxnId);
+    if (txn) {
+      txn.date = date; txn.payee = payee; txn.catId = catId; txn.incomeCatId = incomeCatId; txn.accountId = accountId; txn.savingDir = savingDir; txn.type = txnType; txn.amount = amount;
+      await saveTransaction(txn);
     }
     editingTxnId = null;
   } else {
@@ -4702,17 +4888,22 @@ function renderAccountBalance() {
     const b = allBanks().find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff', name: acc.bankId };
     const tc = b.textColor || '#fff';
     const accTxns = txns.filter(t => t.accountId === acc.id);
+    // Transfers where this account is the destination
+    const incomingTransfers = txns.filter(t => t.type === 'transfer' && t.transferType === 'internal' && t.toAccountId === acc.id);
     let total = 0;
     if (acc.type === 'checking') {
       accTxns.forEach(t => {
         if (t.type === 'income') total += t.amount;
         else if (t.type === 'saving' && t.savingDir === 'withdraw') total += t.amount;
+        else if (t.type === 'transfer' && t.transferType === 'internal') total -= t.amount; // outgoing internal
+        else if (t.type === 'transfer' && t.transferType === 'external') total -= t.amount; // outgoing external
         else total -= t.amount;
       });
     } else if (acc.type === 'investment') {
       accTxns.forEach(t => {
         if (t.type === 'investment') total += t.amount;
         else if (t.type === 'expense') total -= t.amount;
+        else if (t.type === 'transfer') total -= t.amount;
       });
     } else {
       // Savings: +add −withdraw −expenses
@@ -4720,8 +4911,11 @@ function renderAccountBalance() {
         if (t.type === 'saving' && t.savingDir !== 'withdraw') total += t.amount;
         else if (t.type === 'saving' && t.savingDir === 'withdraw') total -= t.amount;
         else if (t.type === 'expense') total -= t.amount;
+        else if (t.type === 'transfer') total -= t.amount;
       });
     }
+    // Add incoming internal transfers
+    incomingTransfers.forEach(t => { total += t.amount; });
     const color = total >= 0 ? 'var(--green)' : 'var(--red)';
     const sign = total >= 0 ? '+' : '−';
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
