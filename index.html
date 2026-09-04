@@ -985,7 +985,7 @@
 
 <!-- Modal: New transaction -->
 <div class="modal-overlay" id="modalOverlay">
-  <div class="modal" style="width:620px; padding:32px; min-height:600px; display:flex; flex-direction:column;">
+  <div class="modal" style="width:744px; padding:32px; min-height:600px; display:flex; flex-direction:column;">
 
     <!-- Amount hero -->
     <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--border);">
@@ -4743,7 +4743,9 @@ function openAccountDetail(accId) {
   if (!acc) return;
   const b = allBanks().find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff', name: acc.bankId };
   const tc = b.textColor || '#fff';
-  const txns = monthlyTxns().filter(t => t.accountId === accId);
+  const allMonthTxns = monthlyTxns();
+  const txns = allMonthTxns.filter(t => t.accountId === accId);
+  const incomingTransfers = allMonthTxns.filter(t => t.type === 'transfer' && t.transferType === 'internal' && t.toAccountId === accId);
 
   document.getElementById('accDetailLogo').style.background = b.color;
   document.getElementById('accDetailLogo').style.color = tc;
@@ -4754,28 +4756,39 @@ function openAccountDetail(accId) {
   const monthName = new Date(currentYear, currentMonth).toLocaleString('en', { month: 'long' });
   document.getElementById('accDetailSub').textContent = `${b.name} · ${acc.type.charAt(0).toUpperCase() + acc.type.slice(1)} · ${monthName} ${currentYear}`;
 
-  // Calculate totals
+  // Calculate totals — including transfers
   let income = 0, expenses = 0, saved = 0, invested = 0, withdrawn = 0;
+  let transfersOut = 0, transfersIn = 0;
   txns.forEach(t => {
     if (t.type === 'income') income += t.amount;
     else if (t.type === 'expense') expenses += t.amount;
     else if (t.type === 'saving' && t.savingDir === 'withdraw') withdrawn += t.amount;
     else if (t.type === 'saving') saved += t.amount;
     else if (t.type === 'investment') invested += t.amount;
+    else if (t.type === 'transfer') transfersOut += t.amount;
   });
+  incomingTransfers.forEach(t => { transfersIn += t.amount; });
 
-  const net = acc.type === 'checking' ? income - expenses - saved - withdrawn
-            : acc.type === 'investment' ? invested - expenses
-            : saved - withdrawn - expenses;
+  const net = accType === 'checking'
+    ? income - expenses - saved - withdrawn - transfersOut + transfersIn
+    : accType === 'investment'
+    ? invested - expenses - transfersOut + transfersIn
+    : saved - withdrawn - expenses - transfersOut + transfersIn;
 
-  // Summary cards
+  // Summary cards — normalise type defensively
+  const accType = (acc.type || '').toLowerCase().trim();
   let summaryCards = '';
-  if (acc.type === 'checking') {
+  if (accType === 'checking') {
+    const transferRow = (transfersOut > 0 || transfersIn > 0) ? `
+        <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Transfers out</div><div style="font-size:22px;font-weight:500;color:var(--text)">${fmt(transfersOut)}</div></div>
+        <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Transfers in</div><div style="font-size:22px;font-weight:500;color:var(--text)">${fmt(transfersIn)}</div></div>` : '';
+    const cols = transferRow ? 6 : 4;
     summaryCards = `
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
+      <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:12px;margin-bottom:28px">
         <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Income</div><div style="font-size:22px;font-weight:500;color:var(--green)">${fmt(income)}</div></div>
         <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Expenses</div><div style="font-size:22px;font-weight:500;color:var(--red)">${fmt(expenses)}</div></div>
         <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Saved</div><div style="font-size:22px;font-weight:500;color:var(--green)">${fmt(saved)}</div></div>
+        ${transferRow}
         <div style="background:var(--surface-1);border-radius:10px;padding:16px 18px;border:0.5px solid var(--border)"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Net balance</div><div style="font-size:18px;font-weight:500;color:${net>=0?'var(--green)':'var(--red)'}">  ${net>=0?'+':'−'}${fmt(Math.abs(net))}</div></div>
       </div>`;
   } else {
@@ -4818,14 +4831,14 @@ function openAccountDetail(accId) {
   }
 
   let breakdown = '';
-  if (acc.type === 'checking') {
+  if (accType === 'checking') {
     const cols = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:4px">
       ${catBreakdown(t('incomeByCategory'), txns.filter(t => t.type==='income'), 'var(--green)')}
       ${catBreakdown(t('expensesByCategory'), txns.filter(t => t.type==='expense'), 'var(--red)')}
       ${catBreakdown(t('savedByCategory'), txns.filter(t => t.type==='saving' && t.savingDir !== 'withdraw'), '#7C3AED')}
     </div>`;
     breakdown = cols;
-  } else if (acc.type === 'investment') {
+  } else if (accType === 'investment') {
     const totalInvested = txns.filter(t => t.type==='saving').reduce((s,t) => s+t.amount, 0);
     const txnCount = txns.filter(t => t.type==='saving').length;
     const avg = txnCount > 0 ? totalInvested / txnCount : 0;
@@ -4864,7 +4877,7 @@ function openAccountDetail(accId) {
     </div>`;
   }
 
-  document.getElementById('accDetailContent').innerHTML = acc.type === 'investment' ? breakdown : summaryCards + breakdown;
+  document.getElementById('accDetailContent').innerHTML = accType === 'investment' ? breakdown : summaryCards + breakdown;
   document.getElementById('accDetailModalOverlay').classList.add('open');
 }
 
@@ -4891,7 +4904,7 @@ function renderAccountBalance() {
     // Transfers where this account is the destination
     const incomingTransfers = txns.filter(t => t.type === 'transfer' && t.transferType === 'internal' && t.toAccountId === acc.id);
     let total = 0;
-    if (acc.type === 'checking') {
+    if (accType === 'checking') {
       accTxns.forEach(t => {
         if (t.type === 'income') total += t.amount;
         else if (t.type === 'saving' && t.savingDir === 'withdraw') total += t.amount;
@@ -4899,7 +4912,7 @@ function renderAccountBalance() {
         else if (t.type === 'transfer' && t.transferType === 'external') total -= t.amount; // outgoing external
         else total -= t.amount;
       });
-    } else if (acc.type === 'investment') {
+    } else if (accType === 'investment') {
       accTxns.forEach(t => {
         if (t.type === 'investment') total += t.amount;
         else if (t.type === 'expense') total -= t.amount;
