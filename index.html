@@ -4904,6 +4904,7 @@ function renderAccountBalance() {
     // Transfers where this account is the destination
     const incomingTransfers = txns.filter(t => t.type === 'transfer' && t.transferType === 'internal' && t.toAccountId === acc.id);
     let total = 0;
+    const accType = (acc.type || '').toLowerCase().trim();
     if (accType === 'checking') {
       accTxns.forEach(t => {
         if (t.type === 'income') total += t.amount;
