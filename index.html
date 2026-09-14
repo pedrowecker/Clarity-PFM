@@ -4736,8 +4736,9 @@ document.getElementById('addBankOverlay')?.addEventListener('click', function(e)
 });
 
 function openAccountDetail(accId) {
+  accId = parseInt(accId);
   const acc = accounts.find(a => a.id === accId);
-  if (!acc) return;
+  if (!acc) { console.warn('Account not found:', accId, accounts); return; }
   const b = allBanks().find(x => x.id === acc.bankId) || { short: acc.bankId, color: '#888', textColor: '#fff', name: acc.bankId };
   const tc = b.textColor || '#fff';
   const allMonthTxns = monthlyTxns();
@@ -4766,14 +4767,15 @@ function openAccountDetail(accId) {
   });
   incomingTransfers.forEach(t => { transfersIn += t.amount; });
 
+  // Summary cards — normalise type defensively
+  const accType = (acc.type || '').toLowerCase().trim();
+
   const net = accType === 'checking'
     ? income - expenses - saved - withdrawn - transfersOut + transfersIn
     : accType === 'investment'
     ? invested - expenses - transfersOut + transfersIn
     : saved - withdrawn - expenses - transfersOut + transfersIn;
 
-  // Summary cards — normalise type defensively
-  const accType = (acc.type || '').toLowerCase().trim();
   let summaryCards = '';
   if (accType === 'checking') {
     const transferRow = (transfersOut > 0 || transfersIn > 0) ? `
@@ -4939,7 +4941,7 @@ function renderAccountBalance() {
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
         <span style="font-size:13px;font-weight:500;font-variant-numeric:tabular-nums;color:${color}">${sign}${fmt(Math.abs(total))}</span>
-        <button onclick="openAccountDetail(${acc.id})" style="font-size:11px;color:#2563EB;background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;white-space:nowrap">View →</button>
+        <button onclick="event.stopPropagation();openAccountDetail(${acc.id})" style="font-size:11px;color:#2563EB;background:none;border:none;cursor:pointer;font-family:var(--font);padding:0;white-space:nowrap">View →</button>
       </div>
     </div>`;
   }).join('');
