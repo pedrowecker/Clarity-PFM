@@ -246,6 +246,7 @@
   .ok { background: var(--green-light); color: var(--green); }
   .over { background: var(--red-light); color: var(--red); }
   .warn { background: var(--amber-light); color: var(--amber); }
+  .hit { background: #EFF6FF; color: #2563EB; }
 
   /* ── Modal ── */
   .modal-overlay {
@@ -2800,14 +2801,16 @@ function renderBudget() {
 
   spendCats.forEach(cat => {
     const catSpent = spentMap[cat.id] || 0;
-    const avail    = cat.budgeted - catSpent;
-    const pct      = cat.budgeted > 0 ? Math.min((catSpent / cat.budgeted) * 100, 100) : 0;
-    spendBudgeted += cat.budgeted;
-    spendSpent    += catSpent;
+    const catSpentR = Math.round(catSpent * 100) / 100;
+    const budgeted  = Math.round(cat.budgeted * 100) / 100;
+    const avail    = budgeted - catSpentR;
+    const pct      = budgeted > 0 ? Math.min((catSpentR / budgeted) * 100, 100) : 0;
+    spendBudgeted += budgeted;
+    spendSpent    += catSpentR;
     let statusClass = 'ok', statusText = t('onTrack'), barColor = '#16A34A';
-    if (catSpent > cat.budgeted)  { statusClass = 'over'; statusText = t('overBudget'); barColor = '#DC2626'; }
-    else if (pct === 100)         { statusClass = 'over'; statusText = t('budgetHit');  barColor = '#DC2626'; }
-    else if (pct > 80)            { statusClass = 'warn'; statusText = t('nearlyFull'); barColor = '#D97706'; }
+    if (catSpentR > budgeted)   { statusClass = 'over'; statusText = t('overBudget'); barColor = '#DC2626'; }
+    else if (pct === 100)       { statusClass = 'hit';  statusText = t('budgetHit');  barColor = '#2563EB'; }
+    else if (pct > 80)          { statusClass = 'warn'; statusText = t('nearlyFull'); barColor = '#D97706'; }
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><div class="cat-name"><span class="cat-dot" style="background:${cat.color}"></span>${cat.name}</div></td>
