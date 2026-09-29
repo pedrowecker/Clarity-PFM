@@ -5093,7 +5093,10 @@ function renderAtTypeChips() {
 
 function renderAtCatTable() {
   const txns = getAtTimeTxns();
-  const dict = window._allCatDict || {};
+  const spendDict  = window._spendCatDict  || {};
+  const savingDict = window._savingCatDict || {};
+  const incomeDict = window._incomeCatDict || {};
+  const investDict = window._investCatDict || {};
 
   // Aggregate by name (not ID) so same-named categories across months are merged
   const nameMap = {};
@@ -5104,7 +5107,17 @@ function renderAtCatTable() {
     if (atTypeFilter === 'investment' && txn.type === 'investment') catId = txn.catId;
     if (atTypeFilter === 'income'     && txn.type === 'income')     catId = txn.incomeCatId;
     if (!catId) return;
-    const cat = dict[catId] || categories.find(x => x.id === catId) || incomeCategories.find(x => x.id === catId) || investmentCategories.find(x => x.id === catId) || { id: catId, name: '(deleted)', color: '#888' };
+    // Use type-specific dictionary to avoid ID collisions between spending and income
+    let cat;
+    if (atTypeFilter === 'income') {
+      cat = incomeDict[catId] || incomeCategories.find(x => x.id === catId) || { id: catId, name: '(deleted)', color: '#888' };
+    } else if (atTypeFilter === 'investment') {
+      cat = investDict[catId] || investmentCategories.find(x => x.id === catId) || { id: catId, name: '(deleted)', color: '#888' };
+    } else if (atTypeFilter === 'savings') {
+      cat = savingDict[catId] || categories.find(x => x.id === catId && x.isSavings) || { id: catId, name: '(deleted)', color: '#888' };
+    } else {
+      cat = spendDict[catId] || categories.find(x => x.id === catId && !x.isSavings) || { id: catId, name: '(deleted)', color: '#888' };
+    }
     const name = cat.name;
     if (!nameMap[name]) nameMap[name] = { name, color: cat.color, value: 0 };
     const amt = (atTypeFilter === 'savings' && txn.savingDir === 'withdraw') ? -txn.amount : txn.amount;
@@ -5228,17 +5241,33 @@ function openAllTime() {
   atTimeFilter = { mode: 'all', value: null };
   renderAtTimeChips();
   renderAtTypeChips();
-  // Build global category dictionary from all months
+  // Build separate dictionaries for spending and income categories
   Promise.all([
     dbGetAll('monthlyCategories'),
     dbGetAll('monthlyIncomeCategories')
   ]).then(([monthlyCats, monthlyIncomeCats]) => {
-    window._allCatDict = {};
+    window._spendCatDict  = {};
+    window._savingCatDict = {};
+    window._incomeCatDict = {};
+    window._investCatDict = {};
     monthlyCats.forEach(entry => {
-      (entry.categories || []).forEach(c => { if (!window._allCatDict[c.id]) window._allCatDict[c.id] = c; });
+      (entry.categories || []).forEach(c => {
+        if (c.isSavings) {
+          if (!window._savingCatDict[c.id]) window._savingCatDict[c.id] = c;
+        } else {
+          if (!window._spendCatDict[c.id]) window._spendCatDict[c.id] = c;
+        }
+      });
     });
     monthlyIncomeCats.forEach(entry => {
-      (entry.categories || []).forEach(c => { if (!window._allCatDict[c.id]) window._allCatDict[c.id] = c; });
+      const isInvest = (entry.monthKey || '').startsWith('inv:');
+      (entry.categories || []).forEach(c => {
+        if (isInvest) {
+          if (!window._investCatDict[c.id]) window._investCatDict[c.id] = c;
+        } else {
+          if (!window._incomeCatDict[c.id]) window._incomeCatDict[c.id] = c;
+        }
+      });
     });
     renderAllTimeData();
   });
